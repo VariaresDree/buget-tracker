@@ -1,0 +1,125 @@
+import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { addAccount, addTransaction, listTransactions } from '../../db/repo';
+import { renderApp, resetApp, unlockVault } from '../../test/helpers';
+
+beforeEach(resetApp);
+
+async function openTransactionsTab(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Transactions' }));
+}
+
+describe('TransactionsScreen', () => {
+  test('adds an expense through the form', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+    await user.type(screen.getByLabelText('Amount'), '250');
+    await user.type(screen.getByLabelText('Note'), 'lunch');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('-₱250.00')).toBeInTheDocument();
+    expect(screen.getByText('lunch')).toBeInTheDocument();
+
+    const [tx] = await listTransactions();
+    expect(tx.amount).toBe(-25000);
+  });
+
+  test('adds income when the income toggle is selected', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+    await user.click(screen.getByLabelText('Income'));
+    await user.type(screen.getByLabelText('Amount'), '500');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('₱500.00')).toBeInTheDocument();
+    const [tx] = await listTransactions();
+    expect(tx.amount).toBe(50000);
+  });
+
+  test('records a transfer as two linked legs', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    await addAccount({ name: 'GCash', type: 'ewallet', startingBalance: 0 });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Transfer' }));
+    const from = screen.getByLabelText('From');
+    await user.selectOptions(from, within(from).getByRole('option', { name: 'Wallet' }));
+    const to = screen.getByLabelText('To');
+    await user.selectOptions(to, within(to).getByRole('option', { name: 'GCash' }));
+    await user.type(screen.getByLabelText('Amount'), '300');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Transfer out')).toBeInTheDocument();
+    expect(screen.getByText('Transfer in')).toBeInTheDocument();
+
+    const txs = await listTransactions();
+    expect(txs).toHaveLength(2);
+    expect(txs[0].transferGroupId).toBe(txs[1].transferGroupId);
+  });
+
+  test('filters the list by account', async () => {
+    await unlockVault();
+    const a1 = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    const a2 = await addAccount({ name: 'BPI', type: 'bank', startingBalance: 0 });
+    await addTransaction({ date: '2026-07-01', accountId: a1, amount: -11100, note: 'wallet spend' });
+    await addTransaction({ date: '2026-07-02', accountId: a2, amount: -22200, note: 'bank spend' });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    expect(await screen.findByText('wallet spend')).toBeInTheDocument();
+    const filter = screen.getByLabelText('Account');
+    await user.selectOptions(filter, within(filter).getByRole('option', { name: 'BPI' }));
+
+    expect(await screen.findByText('bank spend')).toBeInTheDocument();
+    expect(screen.queryByText('wallet spend')).not.toBeInTheDocument();
+  });
+
+  test('edits a transaction amount', async () => {
+    await unlockVault();
+    const a1 = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    await addTransaction({ date: '2026-07-01', accountId: a1, amount: -25000, note: 'groceries' });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    const row = (await screen.findByText('groceries')).closest('li')!;
+    await user.click(within(row).getByRole('button', { name: 'Edit' }));
+    const amount = screen.getByLabelText('Amount');
+    await user.clear(amount);
+    await user.type(amount, '400');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('-₱400.00')).toBeInTheDocument();
+  });
+
+  test('deletes a transaction after confirmation', async () => {
+    await unlockVault();
+    const a1 = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    await addTransaction({ date: '2026-07-01', accountId: a1, amount: -25000, note: 'groceries' });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    const row = (await screen.findByText('groceries')).closest('li')!;
+    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText(/no transactions/i)).toBeInTheDocument();
+    expect(await listTransactions()).toHaveLength(0);
+  });
+});
