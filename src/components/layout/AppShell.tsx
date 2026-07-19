@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAutoLock } from '../../hooks/useAutoLock';
+import { useTheme } from '../../hooks/useTheme';
 import { useAppStore } from '../../store/useAppStore';
 import AccountsScreen from '../accounts/AccountsScreen';
 import CategoriesScreen from '../categories/CategoriesScreen';
@@ -23,6 +24,7 @@ export default function AppShell() {
   }, [lockStatus, init]);
 
   useAutoLock();
+  useTheme();
 
   if (lockStatus === 'loading') return null;
   if (lockStatus === 'uninitialized') return <SetupPassphraseScreen />;

@@ -27,6 +27,55 @@ describe('SettingsScreen', () => {
     expect(useAppStore.getState().settings.currencySymbol).toBe('$');
   });
 
+  test('changes the theme preference', async () => {
+    await unlockVault();
+    const user = userEvent.setup();
+    await renderApp();
+    await openSettingsTab(user);
+
+    const theme = screen.getByLabelText('Theme');
+    await user.selectOptions(theme, within(theme).getByRole('option', { name: 'Light' }));
+    expect(useAppStore.getState().settings.theme).toBe('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  test('changes the passphrase — old fails, new unlocks, data intact', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Keeper', type: 'bank', startingBalance: 12300 });
+    const user = userEvent.setup();
+    await renderApp();
+    await openSettingsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Change passphrase' }));
+    await user.type(screen.getByLabelText('Current passphrase'), 'correct horse battery');
+    await user.type(screen.getByLabelText('New passphrase'), 'my new secret phrase');
+    await user.type(screen.getByLabelText('Confirm new passphrase'), 'my new secret phrase');
+    await user.click(screen.getByRole('button', { name: 'Update passphrase' }));
+
+    expect(await screen.findByText(/passphrase changed/i)).toBeInTheDocument();
+
+    const { resetToLocked } = await import('../../test/helpers');
+    await resetToLocked();
+    expect(await useAppStore.getState().unlock('correct horse battery')).toBe(false);
+    expect(await useAppStore.getState().unlock('my new secret phrase')).toBe(true);
+    expect((await listAccounts())[0]).toMatchObject({ name: 'Keeper', startingBalance: 12300 });
+  });
+
+  test('rejects a wrong current passphrase', async () => {
+    await unlockVault();
+    const user = userEvent.setup();
+    await renderApp();
+    await openSettingsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Change passphrase' }));
+    await user.type(screen.getByLabelText('Current passphrase'), 'wrong one here');
+    await user.type(screen.getByLabelText('New passphrase'), 'my new secret phrase');
+    await user.type(screen.getByLabelText('Confirm new passphrase'), 'my new secret phrase');
+    await user.click(screen.getByRole('button', { name: 'Update passphrase' }));
+
+    expect(await screen.findByText(/incorrect/i)).toBeInTheDocument();
+  });
+
   test('restores an uploaded backup and re-locks the vault', async () => {
     await unlockVault();
     await addAccount({ name: 'Restored Bank', type: 'bank', startingBalance: 42000 });

@@ -17,3 +17,18 @@ if (!globalThis.crypto?.subtle) {
     configurable: true,
   });
 }
+
+// jsdom has no matchMedia; useTheme needs it. Default to dark (no light match).
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}

@@ -30,3 +30,9 @@ export async function renderUnlocked() {
   await unlockVault();
   await renderApp();
 }
+
+/** Reset in-memory store to a fresh boot (locked) without wiping the database. */
+export async function resetToLocked() {
+  useAppStore.setState(initialState, true);
+  await useAppStore.getState().init();
+}

@@ -64,8 +64,16 @@ export const useAppStore = create<AppState>()((set) => ({
   activeTab: 'dashboard',
 
   async init() {
-    const kdf = await db.meta.get('kdfParams');
-    set({ lockStatus: kdf ? 'locked' : 'uninitialized' });
+    const [kdf, settingsRow] = await Promise.all([
+      db.meta.get('kdfParams'),
+      db.meta.get('settings'),
+    ]);
+    // Load persisted settings (plaintext in meta) so the theme is right on the
+    // lock screen, before any passphrase is entered.
+    set({
+      lockStatus: kdf ? 'locked' : 'uninitialized',
+      settings: (settingsRow?.value as Settings) ?? DEFAULT_SETTINGS,
+    });
   },
 
   async setupPassphrase(passphrase) {

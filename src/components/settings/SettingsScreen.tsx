@@ -1,6 +1,6 @@
-import { useState, type ChangeEvent } from 'react';
-import { exportBackup, importBackup } from '../../db/repo';
-import { useAppStore } from '../../store/useAppStore';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { changePassphrase, exportBackup, importBackup } from '../../db/repo';
+import { useAppStore, type Settings } from '../../store/useAppStore';
 
 /** Read a File as text; prefers Blob.text, falls back to FileReader (jsdom). */
 function readText(file: File): Promise<string> {
@@ -24,6 +24,15 @@ export default function SettingsScreen() {
   const [saved, setSaved] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
 
+  // Change-passphrase form
+  const [showPassphrase, setShowPassphrase] = useState(false);
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [passError, setPassError] = useState<string | null>(null);
+  const [passDone, setPassDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+
   async function onSave() {
     await saveSettings({
       currencySymbol: symbol.trim() || '₱',
@@ -42,6 +51,33 @@ export default function SettingsScreen() {
       a.click();
       URL.revokeObjectURL(url);
     });
+  }
+
+  async function onChangePassphrase(e: FormEvent) {
+    e.preventDefault();
+    setPassError(null);
+    setPassDone(false);
+    if (next.length < 8) {
+      setPassError('New passphrase must be at least 8 characters.');
+      return;
+    }
+    if (next !== confirm) {
+      setPassError('New passphrases do not match.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await changePassphrase(current, next);
+      setPassDone(true);
+      setShowPassphrase(false);
+      setCurrent('');
+      setNext('');
+      setConfirm('');
+    } catch (err) {
+      setPassError(err instanceof Error ? err.message : 'Could not change passphrase.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onRestore(e: ChangeEvent<HTMLInputElement>) {
@@ -67,6 +103,18 @@ export default function SettingsScreen() {
       <label htmlFor="set-code">Currency code</label>
       <input id="set-code" value={code} onChange={(e) => { setCode(e.target.value); setSaved(false); }} />
 
+      <h3 className="section-title">Appearance</h3>
+      <label htmlFor="set-theme">Theme</label>
+      <select
+        id="set-theme"
+        value={settings.theme}
+        onChange={(e) => void saveSettings({ theme: e.target.value as Settings['theme'] })}
+      >
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+
       <h3 className="section-title">Security</h3>
       <label htmlFor="set-autolock">Auto-lock after (minutes)</label>
       <input
@@ -80,6 +128,36 @@ export default function SettingsScreen() {
         <button onClick={() => void onSave()}>Save settings</button>
         {saved && <span className="muted">Settings saved.</span>}
       </div>
+
+      {passDone && <p className="muted">Passphrase changed.</p>}
+      {!showPassphrase ? (
+        <div className="form-actions">
+          <button className="secondary" onClick={() => { setShowPassphrase(true); setPassDone(false); }}>
+            Change passphrase
+          </button>
+        </div>
+      ) : (
+        <form className="panel-form" onSubmit={onChangePassphrase}>
+          <label htmlFor="pp-current">Current passphrase</label>
+          <input id="pp-current" type="password" autoComplete="current-password"
+            value={current} onChange={(e) => setCurrent(e.target.value)} />
+          <label htmlFor="pp-new">New passphrase</label>
+          <input id="pp-new" type="password" autoComplete="new-password"
+            value={next} onChange={(e) => setNext(e.target.value)} />
+          <label htmlFor="pp-confirm">Confirm new passphrase</label>
+          <input id="pp-confirm" type="password" autoComplete="new-password"
+            value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          {passError && <p className="form-error">{passError}</p>}
+          <div className="form-actions">
+            <button type="button" className="secondary" onClick={() => setShowPassphrase(false)}>
+              Cancel
+            </button>
+            <button type="submit" disabled={busy}>
+              {busy ? 'Updating…' : 'Update passphrase'}
+            </button>
+          </div>
+        </form>
+      )}
 
       <h3 className="section-title">Backup</h3>
       <p className="muted">

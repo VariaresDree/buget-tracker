@@ -1,4 +1,11 @@
 :root {
+  --radius: 12px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Dark is the base palette (also forced explicitly for theme = "dark"). */
+:root,
+:root[data-theme='dark'] {
   --bg: #10141c;
   --surface: #1a2030;
   --surface-2: #232b40;
@@ -7,9 +14,34 @@
   --accent: #4ade80;
   --accent-dim: #22c55e;
   --danger: #f87171;
-  --radius: 12px;
   color-scheme: dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-2: #e6eaf2;
+  --text: #1a2030;
+  --text-dim: #5b647a;
+  --accent: #16a34a;
+  --accent-dim: #15803d;
+  --danger: #dc2626;
+  color-scheme: light;
+}
+
+/* System: no data-theme attribute set, and the OS prefers light. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface-2: #e6eaf2;
+    --text: #1a2030;
+    --text-dim: #5b647a;
+    --accent: #16a34a;
+    --accent-dim: #15803d;
+    --danger: #dc2626;
+    color-scheme: light;
+  }
 }
 
 * {

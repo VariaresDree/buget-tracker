@@ -2,8 +2,21 @@
 // and receive plaintext; envelope crypto happens here, using the session key
 // (throws while the vault is locked, so nothing plaintext can ever be written).
 
-import { decryptField, encryptField } from '../crypto/envelope';
-import { getSessionKey } from '../store/useAppStore';
+import {
+  decryptField,
+  encryptField,
+  fromBase64,
+  toBase64,
+  type Envelope,
+} from '../crypto/envelope';
+import {
+  createKeycheck,
+  deriveKey,
+  generateSalt,
+  KDF_ITERATIONS,
+  verifyKeycheck,
+} from '../crypto/keys';
+import { getSessionKey, useAppStore } from '../store/useAppStore';
 import type { ColumnMapping, DateOrder, DecimalStyle } from '../lib/csv/normalize';
 import type { Encoding } from '../lib/csv/parse';
 import { computeCatchUp } from '../lib/recurrence';
@@ -11,11 +24,12 @@ import { todayISO } from '../lib/dates';
 import {
   db,
   type AccountRow,
-  type AccountType,
   type CategoryRow,
+  type AccountType,
   type CategoryType,
   type Frequency,
   type ImportPresetRow,
+  type KdfParams,
   type RecurringRuleRow,
   type TransactionRow,
 } from './db';
@@ -523,6 +537,71 @@ export async function importBackup(json: string): Promise<void> {
       await db.importPresets.bulkPut(importPresets ?? []);
     },
   );
+}
+
+// --- change passphrase ---
+
+function reEncrypt(oldKey: CryptoKey, newKey: CryptoKey, env: Envelope): Promise<Envelope> {
+  return decryptField(oldKey, env).then((plain) => encryptField(newKey, plain));
+}
+
+/**
+ * Re-encrypt every stored envelope under a new passphrase and swap the session
+ * key. All Web Crypto runs OUTSIDE the Dexie transaction (awaiting a non-Dexie
+ * promise inside one auto-commits it); only the final writes are transactional.
+ */
+export async function changePassphrase(
+  currentPassphrase: string,
+  newPassphrase: string,
+): Promise<void> {
+  const kdfRow = await db.meta.get('kdfParams');
+  const keycheckRow = await db.meta.get('keycheck');
+  if (!kdfRow || !keycheckRow) throw new Error('Vault is not initialized.');
+
+  const kdf = kdfRow.value as KdfParams;
+  const oldKey = await deriveKey(currentPassphrase, fromBase64(kdf.saltB64), kdf.iterations);
+  if (!(await verifyKeycheck(oldKey, keycheckRow.value as Envelope))) {
+    throw new Error('Current passphrase is incorrect.');
+  }
+
+  const newSalt = generateSalt();
+  const newKey = await deriveKey(newPassphrase, newSalt);
+
+  const [accounts, categories, transactions, rules] = await Promise.all([
+    db.accounts.toArray(),
+    db.categories.toArray(),
+    db.transactions.toArray(),
+    db.recurringRules.toArray(),
+  ]);
+  for (const a of accounts) a.startingBalanceEnc = await reEncrypt(oldKey, newKey, a.startingBalanceEnc);
+  for (const c of categories) {
+    if (c.monthlyCapEnc) c.monthlyCapEnc = await reEncrypt(oldKey, newKey, c.monthlyCapEnc);
+  }
+  for (const t of transactions) {
+    t.amountEnc = await reEncrypt(oldKey, newKey, t.amountEnc);
+    t.noteEnc = await reEncrypt(oldKey, newKey, t.noteEnc);
+  }
+  for (const r of rules) {
+    r.amountEnc = await reEncrypt(oldKey, newKey, r.amountEnc);
+    r.noteEnc = await reEncrypt(oldKey, newKey, r.noteEnc);
+  }
+  const newKeycheck = await createKeycheck(newKey);
+  const newKdf: KdfParams = { saltB64: toBase64(newSalt), iterations: KDF_ITERATIONS, hash: 'SHA-256' };
+
+  await db.transaction(
+    'rw',
+    [db.accounts, db.categories, db.transactions, db.recurringRules, db.meta],
+    async () => {
+      await db.accounts.bulkPut(accounts);
+      await db.categories.bulkPut(categories);
+      await db.transactions.bulkPut(transactions);
+      await db.recurringRules.bulkPut(rules);
+      await db.meta.put({ key: 'kdfParams', value: newKdf });
+      await db.meta.put({ key: 'keycheck', value: newKeycheck });
+    },
+  );
+
+  useAppStore.setState({ sessionKey: newKey });
 }
 
 // --- transfers ---

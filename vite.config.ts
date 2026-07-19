@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // Served from a GitHub Pages project subpath (github.io/buget-tracker/).
+  base: '/buget-tracker/',
   plugins: [
     react(),
     VitePWA({
