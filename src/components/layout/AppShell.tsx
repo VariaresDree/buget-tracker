@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAutoLock } from '../../hooks/useAutoLock';
+import { useAutoSync } from '../../hooks/useAutoSync';
 import { useTheme } from '../../hooks/useTheme';
 import { useAppStore } from '../../store/useAppStore';
 import AccountsScreen from '../accounts/AccountsScreen';
@@ -24,6 +25,7 @@ export default function AppShell() {
   }, [lockStatus, init]);
 
   useAutoLock();
+  useAutoSync();
   useTheme();
 
   if (lockStatus === 'loading') return null;

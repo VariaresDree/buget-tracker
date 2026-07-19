@@ -34,6 +34,16 @@ import {
   type TransactionRow,
 } from './db';
 
+// Mark the vault dirty on any data-table write so auto-sync knows to push.
+// Table hooks cover every mutation (manual, import, recurring, restore) without
+// touching each function. touchData is just a counter bump — cheap and safe.
+for (const table of [db.accounts, db.categories, db.transactions, db.recurringRules]) {
+  const touch = () => useAppStore.getState().touchData();
+  table.hook('creating', touch);
+  table.hook('updating', touch);
+  table.hook('deleting', touch);
+}
+
 export interface Account {
   id: number;
   name: string;

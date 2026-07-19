@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { changePassphrase, exportBackup, importBackup } from '../../db/repo';
 import { useAppStore, type Settings } from '../../store/useAppStore';
+import SyncSection from './SyncSection';
 
 /** Read a File as text; prefers Blob.text, falls back to FileReader (jsdom). */
 function readText(file: File): Promise<string> {
@@ -174,6 +175,8 @@ export default function SettingsScreen() {
         />
       </div>
       {restoreError && <p className="form-error">{restoreError}</p>}
+
+      <SyncSection />
     </section>
   );
 }

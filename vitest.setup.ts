@@ -2,7 +2,12 @@ import '@testing-library/jest-dom/vitest';
 import 'fake-indexeddb/auto';
 import { webcrypto } from 'node:crypto';
 import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
+
+// Keep sync OFF in tests so nothing hits the network — even though Vite loads
+// .env.local. isSyncConfigured() reads these at call-time and sees empty.
+vi.stubEnv('VITE_SUPABASE_URL', '');
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', '');
 
 // RTL only auto-registers cleanup when test globals exist; we run with
 // globals: false, so unmount rendered components after every test ourselves.

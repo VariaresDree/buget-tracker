@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
+import { isSyncConfigured } from '../../sync/client';
 import { useAppStore } from '../../store/useAppStore';
+import RestoreFromSyncForm from './RestoreFromSyncForm';
 
 export default function SetupPassphraseScreen() {
   const setupPassphrase = useAppStore((s) => s.setupPassphrase);
@@ -7,6 +9,9 @@ export default function SetupPassphraseScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  if (restoring) return <RestoreFromSyncForm onCancel={() => setRestoring(false)} />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -55,6 +60,11 @@ export default function SetupPassphraseScreen() {
         <button type="submit" disabled={busy}>
           {busy ? 'Creating…' : 'Create passphrase'}
         </button>
+        {isSyncConfigured() && (
+          <button type="button" className="secondary" onClick={() => setRestoring(true)}>
+            Restore from another device
+          </button>
+        )}
       </form>
     </div>
   );

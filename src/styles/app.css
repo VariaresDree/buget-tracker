@@ -622,3 +622,14 @@ input[type='color'] {
   color: var(--text-dim);
   font-size: 0.72rem;
 }
+
+.sync-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lock-screen form .secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
