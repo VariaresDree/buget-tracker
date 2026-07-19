@@ -130,15 +130,17 @@ input {
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--surface-2);
+  overflow-x: auto;
 }
 
 .tab-bar button {
-  flex: 1;
+  flex: 1 0 auto;
   padding: 12px 8px;
   background: none;
   color: var(--text-dim);
   border-radius: 0;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .tab-bar button.active {
@@ -529,4 +531,62 @@ input[type='color'] {
 .import-rows input[type='checkbox'] {
   width: 18px;
   height: 18px;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+}
+
+.settings h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.settings label {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.settings input {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.backup-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.file-button {
+  padding: 10px 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.backup-actions input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 0.72rem;
 }

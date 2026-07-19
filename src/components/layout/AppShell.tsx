@@ -5,6 +5,8 @@ import AccountsScreen from '../accounts/AccountsScreen';
 import CategoriesScreen from '../categories/CategoriesScreen';
 import DashboardScreen from '../dashboard/DashboardScreen';
 import ImportScreen from '../import/ImportScreen';
+import RecurringScreen from '../recurring/RecurringScreen';
+import SettingsScreen from '../settings/SettingsScreen';
 import SetupPassphraseScreen from '../lock/SetupPassphraseScreen';
 import UnlockScreen from '../lock/UnlockScreen';
 import TransactionsScreen from '../transactions/TransactionsScreen';
@@ -39,7 +41,9 @@ export default function AppShell() {
         {activeTab === 'transactions' && <TransactionsScreen />}
         {activeTab === 'accounts' && <AccountsScreen />}
         {activeTab === 'categories' && <CategoriesScreen />}
+        {activeTab === 'recurring' && <RecurringScreen />}
         {activeTab === 'import' && <ImportScreen />}
+        {activeTab === 'settings' && <SettingsScreen />}
       </main>
       <TabBar />
     </>

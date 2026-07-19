@@ -28,7 +28,14 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type LockStatus = 'loading' | 'uninitialized' | 'locked' | 'unlocked';
 
-export type TabId = 'dashboard' | 'transactions' | 'accounts' | 'categories' | 'import';
+export type TabId =
+  | 'dashboard'
+  | 'transactions'
+  | 'accounts'
+  | 'categories'
+  | 'recurring'
+  | 'import'
+  | 'settings';
 
 interface AppState {
   lockStatus: LockStatus;
@@ -45,6 +52,7 @@ interface AppState {
   setAccounts: (accounts: Account[]) => void;
   setCategories: (categories: Category[]) => void;
   setActiveTab: (tab: TabId) => void;
+  saveSettings: (patch: Partial<Settings>) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
@@ -95,6 +103,11 @@ export const useAppStore = create<AppState>()((set) => ({
       lockStatus: 'unlocked',
       settings: (settingsRow?.value as Settings) ?? DEFAULT_SETTINGS,
     });
+
+    // Auto-log any recurring transactions that came due while away. Dynamic
+    // import keeps the store→repo dependency one-directional at module load.
+    const { runDueRecurring } = await import('../db/repo');
+    await runDueRecurring();
     return true;
   },
 
@@ -113,6 +126,12 @@ export const useAppStore = create<AppState>()((set) => ({
 
   setActiveTab(tab) {
     set({ activeTab: tab });
+  },
+
+  async saveSettings(patch) {
+    const settings = { ...useAppStore.getState().settings, ...patch };
+    await db.meta.put({ key: 'settings', value: settings });
+    set({ settings });
   },
 }));
 

@@ -88,6 +88,37 @@ describe('lockNow', () => {
   });
 });
 
+describe('unlock runs due recurring transactions', () => {
+  test('generates catch-up transactions on unlock', async () => {
+    await useAppStore.getState().setupPassphrase('correct horse battery');
+    const { addAccount, addRecurringRule, listTransactions } = await import('../db/repo');
+    const accountId = await addAccount({ name: 'W', type: 'cash', startingBalance: 0 });
+    await addRecurringRule({
+      accountId, categoryId: null, amount: -1000, note: 'Daily',
+      freq: 'daily', interval: 1,
+      startDate: '2020-01-01', nextRunDate: '2020-01-01', endDate: '2020-01-03',
+    });
+
+    useAppStore.setState(initialState, true);
+    await useAppStore.getState().init();
+    await useAppStore.getState().unlock('correct horse battery');
+
+    // 3 daily instances (Jan 1–3) generated during unlock's catch-up.
+    expect(await listTransactions()).toHaveLength(3);
+  });
+});
+
+describe('saveSettings', () => {
+  test('persists settings and updates the store', async () => {
+    await useAppStore.getState().setupPassphrase('correct horse battery');
+    await useAppStore.getState().saveSettings({ currencySymbol: '$', currencyCode: 'USD' });
+    expect(useAppStore.getState().settings.currencySymbol).toBe('$');
+
+    const stored = (await db.meta.get('settings'))?.value as { currencySymbol: string };
+    expect(stored.currencySymbol).toBe('$');
+  });
+});
+
 describe('getSessionKey', () => {
   test('throws while locked, returns the key while unlocked', async () => {
     expect(() => getSessionKey()).toThrow();

@@ -49,6 +49,22 @@ export interface TransactionRow {
   createdAt: number;
 }
 
+export type Frequency = 'daily' | 'weekly' | 'monthly';
+
+export interface RecurringRuleRow {
+  id?: number;
+  accountId: number;
+  categoryId: number | null;
+  amountEnc: Envelope;
+  noteEnc: Envelope;
+  freq: Frequency;
+  interval: number;
+  startDate: string;
+  nextRunDate: string;
+  endDate: string | null;
+  active: boolean;
+}
+
 // Column mapping + format for one bank's CSV export. No financial data, so it
 // is stored plaintext (behind the app lock) — only column indices and format.
 export interface ImportPresetRow {
@@ -66,6 +82,7 @@ export class BudgetDB extends Dexie {
   categories!: Table<CategoryRow, number>;
   transactions!: Table<TransactionRow, number>;
   importPresets!: Table<ImportPresetRow, number>;
+  recurringRules!: Table<RecurringRuleRow, number>;
 
   constructor() {
     super('budget-tracker');
@@ -82,6 +99,9 @@ export class BudgetDB extends Dexie {
     });
     this.version(4).stores({
       importPresets: '++id, name',
+    });
+    this.version(5).stores({
+      recurringRules: '++id, nextRunDate, active',
     });
   }
 }

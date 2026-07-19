@@ -6,13 +6,17 @@ import { decryptField, encryptField } from '../crypto/envelope';
 import { getSessionKey } from '../store/useAppStore';
 import type { ColumnMapping, DateOrder, DecimalStyle } from '../lib/csv/normalize';
 import type { Encoding } from '../lib/csv/parse';
+import { computeCatchUp } from '../lib/recurrence';
+import { todayISO } from '../lib/dates';
 import {
   db,
   type AccountRow,
   type AccountType,
   type CategoryRow,
   type CategoryType,
+  type Frequency,
   type ImportPresetRow,
+  type RecurringRuleRow,
   type TransactionRow,
 } from './db';
 
@@ -310,6 +314,129 @@ export async function existingImportHashes(accountId: number): Promise<Set<strin
   return hashes;
 }
 
+// --- recurring rules ---
+
+export interface RecurringRule {
+  id: number;
+  accountId: number;
+  categoryId: number | null;
+  amount: number;
+  note: string;
+  freq: Frequency;
+  interval: number;
+  startDate: string;
+  nextRunDate: string;
+  endDate: string | null;
+  active: boolean;
+}
+
+export interface NewRecurringRule {
+  accountId: number;
+  categoryId: number | null;
+  amount: number;
+  note: string;
+  freq: Frequency;
+  interval: number;
+  startDate: string;
+  nextRunDate: string;
+  endDate: string | null;
+}
+
+export async function addRecurringRule(input: NewRecurringRule): Promise<number> {
+  const key = getSessionKey();
+  return db.recurringRules.add({
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    amountEnc: await encryptField(key, String(input.amount)),
+    noteEnc: await encryptField(key, input.note),
+    freq: input.freq,
+    interval: input.interval,
+    startDate: input.startDate,
+    nextRunDate: input.nextRunDate,
+    endDate: input.endDate,
+    active: true,
+  });
+}
+
+export async function updateRecurringRule(
+  id: number,
+  patch: Partial<NewRecurringRule & { active: boolean }>,
+): Promise<void> {
+  const key = getSessionKey();
+  const changes: Partial<RecurringRuleRow> = {};
+  for (const field of ['accountId', 'categoryId', 'freq', 'interval', 'startDate', 'nextRunDate', 'endDate', 'active'] as const) {
+    if (patch[field] !== undefined) (changes as Record<string, unknown>)[field] = patch[field];
+  }
+  if (patch.amount !== undefined) changes.amountEnc = await encryptField(key, String(patch.amount));
+  if (patch.note !== undefined) changes.noteEnc = await encryptField(key, patch.note);
+  await db.recurringRules.update(id, changes);
+}
+
+export function deleteRecurringRule(id: number): Promise<void> {
+  return db.recurringRules.delete(id);
+}
+
+export async function listRecurringRules(): Promise<RecurringRule[]> {
+  const key = getSessionKey();
+  const rows = await db.recurringRules.toArray();
+  const rules = await Promise.all(
+    rows.map(async (row) => ({
+      id: row.id!,
+      accountId: row.accountId,
+      categoryId: row.categoryId,
+      amount: Number(await decryptField(key, row.amountEnc)),
+      note: await decryptField(key, row.noteEnc),
+      freq: row.freq,
+      interval: row.interval,
+      startDate: row.startDate,
+      nextRunDate: row.nextRunDate,
+      endDate: row.endDate,
+      active: row.active,
+    })),
+  );
+  return rules.sort((a, b) => a.nextRunDate.localeCompare(b.nextRunDate));
+}
+
+/**
+ * Generate any recurring transactions due on or before `today`, advancing each
+ * rule's nextRunDate. Idempotent — safe to call on every unlock. Returns the
+ * number of transactions created.
+ */
+export async function runDueRecurring(today: string = todayISO()): Promise<number> {
+  const key = getSessionKey();
+  const rows = (await db.recurringRules.toArray()).filter((r) => r.active);
+  let created = 0;
+
+  for (const row of rows) {
+    const { dates, nextRunDate, deactivate } = computeCatchUp(
+      { startDate: row.startDate, nextRunDate: row.nextRunDate, freq: row.freq, interval: row.interval, endDate: row.endDate },
+      today,
+    );
+    if (dates.length === 0 && !deactivate) continue;
+
+    const amount = Number(await decryptField(key, row.amountEnc));
+    const note = await decryptField(key, row.noteEnc);
+    const records: TransactionRow[] = await Promise.all(
+      dates.map(async (date) => ({
+        date,
+        accountId: row.accountId,
+        categoryId: row.categoryId,
+        amountEnc: await encryptField(key, String(amount)),
+        noteEnc: await encryptField(key, note),
+        transferGroupId: null,
+        recurringRuleId: row.id,
+        createdAt: Date.now(),
+      })),
+    );
+    await db.transaction('rw', db.transactions, db.recurringRules, async () => {
+      if (records.length > 0) await db.transactions.bulkAdd(records);
+      await db.recurringRules.update(row.id!, { nextRunDate, active: !deactivate });
+    });
+    created += records.length;
+  }
+  return created;
+}
+
 // --- import presets ---
 
 export interface ImportPreset {
@@ -341,6 +468,61 @@ export async function listImportPresets(): Promise<ImportPreset[]> {
 
 export function deleteImportPreset(id: number): Promise<void> {
   return db.importPresets.delete(id);
+}
+
+// --- encrypted backup ---
+
+const BACKUP_FORMAT = 'budget-tracker-backup';
+
+/**
+ * Full snapshot as JSON. Financial fields stay AES-GCM envelopes, so the backup
+ * is only usable with the original passphrase — the kdf params and keycheck are
+ * included so the same passphrase unlocks it after a restore. No session key
+ * needed: this copies raw rows without decrypting.
+ */
+export async function exportBackup(): Promise<string> {
+  const [accounts, categories, transactions, recurringRules, importPresets, meta] =
+    await Promise.all([
+      db.accounts.toArray(),
+      db.categories.toArray(),
+      db.transactions.toArray(),
+      db.recurringRules.toArray(),
+      db.importPresets.toArray(),
+      db.meta.toArray(),
+    ]);
+  return JSON.stringify({
+    format: BACKUP_FORMAT,
+    schemaVersion: db.verno, // Dexie's live schema version, not the stale meta row
+
+    exportedAt: new Date().toISOString(),
+    meta,
+    tables: { accounts, categories, transactions, recurringRules, importPresets },
+  });
+}
+
+/** Replace all data with a backup's contents. The app must re-lock afterward. */
+export async function importBackup(json: string): Promise<void> {
+  const parsed = JSON.parse(json);
+  if (parsed?.format !== BACKUP_FORMAT || !parsed.tables || !parsed.meta) {
+    throw new Error('Not a valid budget-tracker backup file.');
+  }
+  const { accounts, categories, transactions, recurringRules, importPresets } = parsed.tables;
+  await db.transaction(
+    'rw',
+    [db.meta, db.accounts, db.categories, db.transactions, db.recurringRules, db.importPresets],
+    async () => {
+      await Promise.all([
+        db.meta.clear(), db.accounts.clear(), db.categories.clear(),
+        db.transactions.clear(), db.recurringRules.clear(), db.importPresets.clear(),
+      ]);
+      await db.meta.bulkPut(parsed.meta);
+      await db.accounts.bulkPut(accounts ?? []);
+      await db.categories.bulkPut(categories ?? []);
+      await db.transactions.bulkPut(transactions ?? []);
+      await db.recurringRules.bulkPut(recurringRules ?? []);
+      await db.importPresets.bulkPut(importPresets ?? []);
+    },
+  );
 }
 
 // --- transfers ---
