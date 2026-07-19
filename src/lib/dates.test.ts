@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { addMonths, monthOf, todayISO } from './dates';
+import { addMonths, daysInMonth, monthOf, todayISO } from './dates';
 
 describe('todayISO', () => {
   test('returns the local date as YYYY-MM-DD', () => {
@@ -12,6 +12,15 @@ describe('todayISO', () => {
 describe('monthOf', () => {
   test('extracts YYYY-MM from an ISO date', () => {
     expect(monthOf('2026-07-18')).toBe('2026-07');
+  });
+});
+
+describe('daysInMonth', () => {
+  test('handles 31/30-day months and leap years', () => {
+    expect(daysInMonth('2026-07')).toBe(31);
+    expect(daysInMonth('2026-04')).toBe(30);
+    expect(daysInMonth('2026-02')).toBe(28);
+    expect(daysInMonth('2024-02')).toBe(29);
   });
 });
 

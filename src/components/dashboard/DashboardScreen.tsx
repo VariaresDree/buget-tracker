@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { listTransactions, type Transaction } from '../../db/repo';
 import { useCategories } from '../../hooks/useCategories';
 import { budgetRows, categorySpend, monthTotals } from '../../lib/budgets';
+import { cumulativeSpendSeries, pieData } from '../../lib/charts';
 import { addMonths, monthOf, todayISO } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
 import BudgetBar from './BudgetBar';
+import CategoryPie from './CategoryPie';
+import SpendLine from './SpendLine';
 
 export default function DashboardScreen() {
   const categories = useCategories();
@@ -34,6 +37,13 @@ export default function DashboardScreen() {
     () => new Map(categories.map((c) => [c.id, c])),
     [categories],
   );
+  const slices = useMemo(() => pieData(categories, spend), [categories, spend]);
+  const series = useMemo(() => {
+    const today = todayISO();
+    const throughDay =
+      month === monthOf(today) ? Number(today.slice(8, 10)) : undefined;
+    return cumulativeSpendSeries(transactions ?? [], month, throughDay);
+  }, [transactions, month]);
 
   return (
     <section>
@@ -76,7 +86,7 @@ export default function DashboardScreen() {
           spending against monthly caps.
         </p>
       ) : (
-        <ul className="card-list budget-list">
+        <ul className="card-list budget-list" aria-label="Budgets">
           {rows.map((row) => {
             const category = categoryById.get(row.categoryId);
             if (!category) return null;
@@ -106,6 +116,12 @@ export default function DashboardScreen() {
           )}
         </ul>
       )}
+
+      <h3 className="section-title">Spending by category</h3>
+      <CategoryPie slices={slices} symbol={symbol} />
+
+      <h3 className="section-title">Spend over time</h3>
+      <SpendLine series={series} symbol={symbol} />
     </section>
   );
 }

@@ -11,6 +11,11 @@ export function monthOf(dateISO: string): string {
   return dateISO.slice(0, 7);
 }
 
+export function daysInMonth(month: string): number {
+  const [year, m] = month.split('-').map(Number);
+  return new Date(year, m, 0).getDate();
+}
+
 export function addMonths(month: string, delta: number): string {
   const [year, m] = month.split('-').map(Number);
   const total = year * 12 + (m - 1) + delta;

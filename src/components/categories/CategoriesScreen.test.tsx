@@ -57,6 +57,20 @@ describe('CategoriesScreen', () => {
     expect((await listCategories())[0]).toMatchObject({ type: 'income', monthlyCap: null });
   });
 
+  test('preset swatches set the category color', async () => {
+    const user = userEvent.setup();
+    await renderUnlocked();
+    await openCategoriesTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await user.type(screen.getByLabelText('Name'), 'Bills');
+    await user.click(screen.getByRole('button', { name: 'Color option 3' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Bills');
+    expect((await listCategories())[0].color).toBe('#c98500');
+  });
+
   test('edits a category cap', async () => {
     await unlockVault();
     await addCategory({ name: 'Food', type: 'expense', monthlyCap: 500000, color: '#f97316' });

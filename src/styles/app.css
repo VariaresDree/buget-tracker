@@ -391,3 +391,58 @@ input[type='color'] {
   border: 1px solid var(--surface-2);
   border-radius: var(--radius);
 }
+
+.swatch-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  padding: 0;
+  border: 2px solid transparent;
+}
+
+.swatch.selected {
+  border-color: var(--text);
+  outline: 2px solid var(--bg);
+  outline-offset: -4px;
+}
+
+.chart-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 18px;
+}
+
+.chart-legend {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.chart-legend .legend-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-legend .amount {
+  font-size: 0.9rem;
+}

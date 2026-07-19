@@ -3,8 +3,9 @@ import type { CategoryType } from '../../db/db';
 import { addCategory, updateCategory, type Category } from '../../db/repo';
 import { refreshCategories } from '../../hooks/useCategories';
 import { parseAmountInput } from '../../lib/money';
+import { PRESET_COLORS } from './presetColors';
 
-const DEFAULT_COLOR = '#4ade80';
+const DEFAULT_COLOR = PRESET_COLORS[0];
 
 interface Props {
   category?: Category;
@@ -86,6 +87,19 @@ export default function CategoryForm({ category, onDone }: Props) {
         </>
       )}
       <label htmlFor="category-color">Color</label>
+      <div className="swatch-row">
+        {PRESET_COLORS.map((preset, i) => (
+          <button
+            key={preset}
+            type="button"
+            className={preset === color ? 'swatch selected' : 'swatch'}
+            style={{ background: preset }}
+            aria-label={`Color option ${i + 1}`}
+            aria-pressed={preset === color}
+            onClick={() => setColor(preset)}
+          />
+        ))}
+      </div>
       <input
         id="category-color"
         type="color"

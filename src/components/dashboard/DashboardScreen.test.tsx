@@ -26,16 +26,18 @@ describe('DashboardScreen', () => {
     expect(await screen.findByText('₱50,000.00')).toBeInTheDocument();
     expect(screen.getByText('₱3,700.00')).toBeInTheDocument();
 
-    const foodRow = screen.getByText('Food').closest('li')!;
+    // Scope to the budget list — the pie legend repeats category names.
+    const budgets = screen.getByRole('list', { name: 'Budgets' });
+    const foodRow = within(budgets).getByText('Food').closest('li')!;
     expect(within(foodRow).getByText('₱2,500.00')).toBeInTheDocument();
     expect(within(foodRow).getByText(/of ₱5,000\.00/)).toBeInTheDocument();
     expect(within(foodRow).getByText(/₱2,500\.00 left/)).toBeInTheDocument();
 
-    const transportRow = screen.getByText('Transport').closest('li')!;
+    const transportRow = within(budgets).getByText('Transport').closest('li')!;
     expect(within(transportRow).getByText('₱500.00')).toBeInTheDocument();
     expect(within(transportRow).getByText('No cap')).toBeInTheDocument();
 
-    const uncatRow = screen.getByText('Uncategorized').closest('li')!;
+    const uncatRow = within(budgets).getByText('Uncategorized').closest('li')!;
     expect(within(uncatRow).getByText('₱700.00')).toBeInTheDocument();
 
     // Income categories don't get budget rows
@@ -50,8 +52,34 @@ describe('DashboardScreen', () => {
     await renderApp();
 
     // The budget row renders from categories immediately; spend arrives async.
-    const foodRow = (await screen.findByText('Food')).closest('li')!;
+    const budgets = screen.getByRole('list', { name: 'Budgets' });
+    const foodRow = (await within(budgets).findByText('Food')).closest('li')!;
     expect(await within(foodRow).findByText(/Over by ₱500\.00/)).toBeInTheDocument();
+  });
+
+  test('renders the spending charts for the selected month', async () => {
+    await unlockVault();
+    const acct = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    const food = await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#3987e5' });
+    await addTransaction({ date: todayISO(), accountId: acct, amount: -250000, categoryId: food });
+    await renderApp();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Spending by category' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Spend over time' }),
+    ).toBeInTheDocument();
+
+    const legend = await screen.findByRole('list', { name: 'Category spend legend' });
+    expect(within(legend).getByText('Food')).toBeInTheDocument();
+    expect(within(legend).getByText('₱2,500.00')).toBeInTheDocument();
+  });
+
+  test('charts show empty states when the month has no spend', async () => {
+    await unlockVault();
+    await renderApp();
+    expect(await screen.findAllByText(/no spending this month/i)).toHaveLength(2);
   });
 
   test('navigates to the previous month', async () => {
