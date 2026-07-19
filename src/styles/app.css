@@ -446,3 +446,87 @@ input[type='color'] {
 .chart-legend .amount {
   font-size: 0.9rem;
 }
+
+.tab-bar button {
+  padding: 12px 4px;
+  font-size: 0.8rem;
+}
+
+.import-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.import-step h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.import-step label {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.import-step select,
+.import-step input[type='text'],
+.import-step input:not([type]),
+.preset-save input {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.sample-table {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+}
+
+.sample-table table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.sample-table th,
+.sample-table td {
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--surface-2);
+  color: var(--text-dim);
+}
+
+.sample-table th {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.preset-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-save input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.import-rows li.duplicate {
+  opacity: 0.6;
+}
+
+.import-rows li.invalid {
+  border-left: 3px solid var(--danger);
+}
+
+.import-rows input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}

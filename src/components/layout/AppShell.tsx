@@ -4,6 +4,7 @@ import { useAppStore } from '../../store/useAppStore';
 import AccountsScreen from '../accounts/AccountsScreen';
 import CategoriesScreen from '../categories/CategoriesScreen';
 import DashboardScreen from '../dashboard/DashboardScreen';
+import ImportScreen from '../import/ImportScreen';
 import SetupPassphraseScreen from '../lock/SetupPassphraseScreen';
 import UnlockScreen from '../lock/UnlockScreen';
 import TransactionsScreen from '../transactions/TransactionsScreen';
@@ -38,6 +39,7 @@ export default function AppShell() {
         {activeTab === 'transactions' && <TransactionsScreen />}
         {activeTab === 'accounts' && <AccountsScreen />}
         {activeTab === 'categories' && <CategoriesScreen />}
+        {activeTab === 'import' && <ImportScreen />}
       </main>
       <TabBar />
     </>

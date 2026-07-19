@@ -49,11 +49,23 @@ export interface TransactionRow {
   createdAt: number;
 }
 
+// Column mapping + format for one bank's CSV export. No financial data, so it
+// is stored plaintext (behind the app lock) — only column indices and format.
+export interface ImportPresetRow {
+  id?: number;
+  name: string;
+  mapping: { date: number | null; description: number | null; amount: number | null; debit: number | null; credit: number | null };
+  dateOrder: string;
+  decimal: string | null;
+  encoding: string;
+}
+
 export class BudgetDB extends Dexie {
   meta!: Table<MetaRow, string>;
   accounts!: Table<AccountRow, number>;
   categories!: Table<CategoryRow, number>;
   transactions!: Table<TransactionRow, number>;
+  importPresets!: Table<ImportPresetRow, number>;
 
   constructor() {
     super('budget-tracker');
@@ -67,6 +79,9 @@ export class BudgetDB extends Dexie {
     });
     this.version(3).stores({
       categories: '++id, name, type',
+    });
+    this.version(4).stores({
+      importPresets: '++id, name',
     });
   }
 }

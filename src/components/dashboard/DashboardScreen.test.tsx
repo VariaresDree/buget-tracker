@@ -27,7 +27,7 @@ describe('DashboardScreen', () => {
     expect(screen.getByText('₱3,700.00')).toBeInTheDocument();
 
     // Scope to the budget list — the pie legend repeats category names.
-    const budgets = screen.getByRole('list', { name: 'Budgets' });
+    const budgets = await screen.findByRole('list', { name: 'Budgets' });
     const foodRow = within(budgets).getByText('Food').closest('li')!;
     expect(within(foodRow).getByText('₱2,500.00')).toBeInTheDocument();
     expect(within(foodRow).getByText(/of ₱5,000\.00/)).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('DashboardScreen', () => {
     await renderApp();
 
     // The budget row renders from categories immediately; spend arrives async.
-    const budgets = screen.getByRole('list', { name: 'Budgets' });
+    const budgets = await screen.findByRole('list', { name: 'Budgets' });
     const foodRow = (await within(budgets).findByText('Food')).closest('li')!;
     expect(await within(foodRow).findByText(/Over by ₱500\.00/)).toBeInTheDocument();
   });

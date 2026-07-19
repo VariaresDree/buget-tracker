@@ -5,6 +5,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'transactions', label: 'Transactions' },
   { id: 'accounts', label: 'Accounts' },
   { id: 'categories', label: 'Categories' },
+  { id: 'import', label: 'Import' },
 ];
 
 export default function TabBar() {

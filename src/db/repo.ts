@@ -4,12 +4,15 @@
 
 import { decryptField, encryptField } from '../crypto/envelope';
 import { getSessionKey } from '../store/useAppStore';
+import type { ColumnMapping, DateOrder, DecimalStyle } from '../lib/csv/normalize';
+import type { Encoding } from '../lib/csv/parse';
 import {
   db,
   type AccountRow,
   type AccountType,
   type CategoryRow,
   type CategoryType,
+  type ImportPresetRow,
   type TransactionRow,
 } from './db';
 
@@ -264,6 +267,80 @@ export async function listTransactions(
   return decrypted.sort(
     (a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt || b.id - a.id,
   );
+}
+
+// --- CSV import ---
+
+export interface ImportRow {
+  date: string;
+  amount: number;
+  note: string;
+  importHash: string;
+  categoryId?: number | null;
+}
+
+/** Bulk-add imported transactions (amount/note encrypted, importHash plaintext). */
+export async function commitImport(
+  accountId: number,
+  rows: ImportRow[],
+): Promise<number> {
+  const key = getSessionKey();
+  const records: TransactionRow[] = await Promise.all(
+    rows.map(async (row) => ({
+      date: row.date,
+      accountId,
+      categoryId: row.categoryId ?? null,
+      amountEnc: await encryptField(key, String(row.amount)),
+      noteEnc: await encryptField(key, row.note),
+      transferGroupId: null,
+      importHash: row.importHash,
+      createdAt: Date.now(),
+    })),
+  );
+  await db.transactions.bulkAdd(records);
+  return records.length;
+}
+
+/** Set of importHashes already present for an account, for dedupe. */
+export async function existingImportHashes(accountId: number): Promise<Set<string>> {
+  getSessionKey();
+  const rows = await db.transactions.where('accountId').equals(accountId).toArray();
+  const hashes = new Set<string>();
+  for (const row of rows) if (row.importHash) hashes.add(row.importHash);
+  return hashes;
+}
+
+// --- import presets ---
+
+export interface ImportPreset {
+  id: number;
+  name: string;
+  mapping: ColumnMapping;
+  dateOrder: DateOrder;
+  decimal: DecimalStyle | null;
+  encoding: Encoding;
+}
+
+export type NewImportPreset = Omit<ImportPreset, 'id'>;
+
+export function addImportPreset(input: NewImportPreset): Promise<number> {
+  return db.importPresets.add(input as ImportPresetRow);
+}
+
+export async function listImportPresets(): Promise<ImportPreset[]> {
+  const rows = await db.importPresets.toArray();
+  return rows.map((row) => ({
+    id: row.id!,
+    name: row.name,
+    mapping: row.mapping as ColumnMapping,
+    dateOrder: row.dateOrder as DateOrder,
+    decimal: row.decimal as DecimalStyle | null,
+    encoding: row.encoding as Encoding,
+  }));
+}
+
+export function deleteImportPreset(id: number): Promise<void> {
+  return db.importPresets.delete(id);
 }
 
 // --- transfers ---

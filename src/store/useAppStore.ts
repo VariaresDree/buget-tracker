@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type LockStatus = 'loading' | 'uninitialized' | 'locked' | 'unlocked';
 
-export type TabId = 'dashboard' | 'transactions' | 'accounts' | 'categories';
+export type TabId = 'dashboard' | 'transactions' | 'accounts' | 'categories' | 'import';
 
 interface AppState {
   lockStatus: LockStatus;
