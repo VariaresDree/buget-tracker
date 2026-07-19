@@ -8,6 +8,8 @@ import {
   db,
   type AccountRow,
   type AccountType,
+  type CategoryRow,
+  type CategoryType,
   type TransactionRow,
 } from './db';
 
@@ -93,6 +95,78 @@ export async function listAccounts(): Promise<Account[]> {
       createdAt: row.createdAt,
     })),
   );
+}
+
+// --- categories ---
+
+export interface Category {
+  id: number;
+  name: string;
+  type: CategoryType;
+  monthlyCap: number | null;
+  color: string;
+  archived: boolean;
+}
+
+export interface NewCategory {
+  name: string;
+  type: CategoryType;
+  monthlyCap: number | null;
+  color: string;
+}
+
+export async function addCategory(input: NewCategory): Promise<number> {
+  const key = getSessionKey();
+  return db.categories.add({
+    name: input.name,
+    type: input.type,
+    monthlyCapEnc:
+      input.monthlyCap === null ? null : await encryptField(key, String(input.monthlyCap)),
+    color: input.color,
+    archived: false,
+  });
+}
+
+export async function updateCategory(
+  id: number,
+  patch: Partial<NewCategory>,
+): Promise<void> {
+  const key = getSessionKey();
+  const changes: Partial<CategoryRow> = {};
+  if (patch.name !== undefined) changes.name = patch.name;
+  if (patch.type !== undefined) changes.type = patch.type;
+  if (patch.color !== undefined) changes.color = patch.color;
+  if (patch.monthlyCap !== undefined) {
+    changes.monthlyCapEnc =
+      patch.monthlyCap === null ? null : await encryptField(key, String(patch.monthlyCap));
+  }
+  await db.categories.update(id, changes);
+}
+
+/** Deletes the category; its transactions become uncategorized. */
+export async function deleteCategory(id: number): Promise<void> {
+  getSessionKey();
+  await db.transaction('rw', db.categories, db.transactions, async () => {
+    await db.transactions.where('categoryId').equals(id).modify({ categoryId: null });
+    await db.categories.delete(id);
+  });
+}
+
+export async function listCategories(): Promise<Category[]> {
+  const key = getSessionKey();
+  const rows = await db.categories.toArray();
+  const categories = await Promise.all(
+    rows.map(async (row) => ({
+      id: row.id!,
+      name: row.name,
+      type: row.type,
+      monthlyCap:
+        row.monthlyCapEnc === null ? null : Number(await decryptField(key, row.monthlyCapEnc)),
+      color: row.color,
+      archived: row.archived,
+    })),
+  );
+  return categories.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // --- transactions ---

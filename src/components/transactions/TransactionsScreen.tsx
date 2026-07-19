@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { deleteTransaction, listTransactions, type Transaction } from '../../db/repo';
 import { useAccounts } from '../../hooks/useAccounts';
+import { useCategories } from '../../hooks/useCategories';
 import { monthOf } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
@@ -15,6 +16,7 @@ type Mode =
 
 export default function TransactionsScreen() {
   const accounts = useAccounts();
+  const categories = useCategories();
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const [mode, setMode] = useState<Mode>({ kind: 'list' });
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
@@ -137,7 +139,8 @@ export default function TransactionsScreen() {
                     ? tx.amount < 0
                       ? 'Transfer out'
                       : 'Transfer in'
-                    : accountName(tx.accountId)}
+                    : (categories.find((c) => c.id === tx.categoryId)?.name ??
+                      accountName(tx.accountId))}
                 </strong>
                 <span className="muted">
                   {tx.date}

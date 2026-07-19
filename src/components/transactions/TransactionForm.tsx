@@ -5,6 +5,7 @@ import {
   type Account,
   type Transaction,
 } from '../../db/repo';
+import { useCategories } from '../../hooks/useCategories';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function TransactionForm({ accounts, tx, onDone }: Props) {
+  const categories = useCategories();
   const [kind, setKind] = useState<'expense' | 'income'>(
     tx && tx.amount > 0 ? 'income' : 'expense',
   );
@@ -22,9 +24,23 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
     tx ? (Math.abs(tx.amount) / 100).toFixed(2) : '',
   );
   const [accountId, setAccountId] = useState<number>(tx?.accountId ?? accounts[0].id);
+  const [categoryId, setCategoryId] = useState<number | 'none'>(tx?.categoryId ?? 'none');
   const [date, setDate] = useState(tx?.date ?? todayISO());
   const [note, setNote] = useState(tx?.note ?? '');
   const [error, setError] = useState<string | null>(null);
+
+  const categoryOptions = categories.filter((c) => c.type === kind && !c.archived);
+
+  function switchKind(next: 'expense' | 'income') {
+    setKind(next);
+    // A category of the other type can't stay selected.
+    if (
+      categoryId !== 'none' &&
+      categories.find((c) => c.id === categoryId)?.type !== next
+    ) {
+      setCategoryId('none');
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -34,10 +50,11 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
       return;
     }
     const amount = kind === 'expense' ? -parsed : parsed;
+    const finalCategoryId = categoryId === 'none' ? null : categoryId;
     if (tx) {
-      await updateTransaction(tx.id, { amount, accountId, date, note });
+      await updateTransaction(tx.id, { amount, accountId, categoryId: finalCategoryId, date, note });
     } else {
-      await addTransaction({ date, accountId, amount, note });
+      await addTransaction({ date, accountId, categoryId: finalCategoryId, amount, note });
     }
     onDone();
   }
@@ -51,7 +68,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
             type="radio"
             name="kind"
             checked={kind === 'expense'}
-            onChange={() => setKind('expense')}
+            onChange={() => switchKind('expense')}
           />
           Expense
         </label>
@@ -60,7 +77,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
             type="radio"
             name="kind"
             checked={kind === 'income'}
-            onChange={() => setKind('income')}
+            onChange={() => switchKind('income')}
           />
           Income
         </label>
@@ -82,6 +99,21 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>
             {a.name}
+          </option>
+        ))}
+      </select>
+      <label htmlFor="tx-category">Category</label>
+      <select
+        id="tx-category"
+        value={categoryId === 'none' ? 'none' : String(categoryId)}
+        onChange={(e) =>
+          setCategoryId(e.target.value === 'none' ? 'none' : Number(e.target.value))
+        }
+      >
+        <option value="none">Uncategorized</option>
+        {categoryOptions.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
           </option>
         ))}
       </select>

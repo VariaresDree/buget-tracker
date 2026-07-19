@@ -14,6 +14,8 @@ export interface KdfParams {
 
 export type AccountType = 'cash' | 'ewallet' | 'bank' | 'credit';
 
+export type CategoryType = 'expense' | 'income';
+
 // Stored rows: money and notes exist only as AES-GCM envelopes (🔒 in plan.md).
 // Dates and foreign keys stay plaintext so indexes keep working.
 export interface AccountRow {
@@ -23,6 +25,15 @@ export interface AccountRow {
   startingBalanceEnc: Envelope;
   archived: boolean;
   createdAt: number;
+}
+
+export interface CategoryRow {
+  id?: number;
+  name: string;
+  type: CategoryType;
+  monthlyCapEnc: Envelope | null; // null = no cap
+  color: string;
+  archived: boolean;
 }
 
 export interface TransactionRow {
@@ -41,6 +52,7 @@ export interface TransactionRow {
 export class BudgetDB extends Dexie {
   meta!: Table<MetaRow, string>;
   accounts!: Table<AccountRow, number>;
+  categories!: Table<CategoryRow, number>;
   transactions!: Table<TransactionRow, number>;
 
   constructor() {
@@ -52,6 +64,9 @@ export class BudgetDB extends Dexie {
       accounts: '++id, name, type',
       transactions:
         '++id, date, accountId, categoryId, [accountId+date], transferGroupId, importHash',
+    });
+    this.version(3).stores({
+      categories: '++id, name, type',
     });
   }
 }

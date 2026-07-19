@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useAutoLock } from '../../hooks/useAutoLock';
 import { useAppStore } from '../../store/useAppStore';
 import AccountsScreen from '../accounts/AccountsScreen';
+import CategoriesScreen from '../categories/CategoriesScreen';
+import DashboardScreen from '../dashboard/DashboardScreen';
 import SetupPassphraseScreen from '../lock/SetupPassphraseScreen';
 import UnlockScreen from '../lock/UnlockScreen';
 import TransactionsScreen from '../transactions/TransactionsScreen';
@@ -32,13 +34,10 @@ export default function AppShell() {
         </button>
       </header>
       <main className="app-main">
-        {activeTab === 'dashboard' && (
-          <p className="placeholder">
-            Dashboard arrives in Phase 3 — add your accounts and transactions first.
-          </p>
-        )}
+        {activeTab === 'dashboard' && <DashboardScreen />}
         {activeTab === 'transactions' && <TransactionsScreen />}
         {activeTab === 'accounts' && <AccountsScreen />}
+        {activeTab === 'categories' && <CategoriesScreen />}
       </main>
       <TabBar />
     </>

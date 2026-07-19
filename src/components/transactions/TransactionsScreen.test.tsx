@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { addAccount, addTransaction, listTransactions } from '../../db/repo';
+import { addAccount, addCategory, addTransaction, listTransactions } from '../../db/repo';
 import { renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
@@ -105,6 +105,49 @@ describe('TransactionsScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('-₱400.00')).toBeInTheDocument();
+  });
+
+  test('assigns a category to an expense', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    const food = await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#f97316' });
+    await addCategory({ name: 'Salary', type: 'income', monthlyCap: null, color: '#4ade80' });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+    const category = screen.getByLabelText('Category');
+    await user.selectOptions(category, within(category).getByRole('option', { name: 'Food' }));
+    await user.type(screen.getByLabelText('Amount'), '250');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    // Match the row title only — a bare findByText('Food') can grab the form's
+    // <option> just before the form unmounts, leaving a detached element.
+    expect(
+      await screen.findByText('Food', { selector: 'strong' }, { timeout: 3000 }),
+    ).toBeInTheDocument();
+    const [tx] = await listTransactions();
+    expect(tx.categoryId).toBe(food);
+  });
+
+  test('category options follow the expense/income toggle', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#f97316' });
+    await addCategory({ name: 'Salary', type: 'income', monthlyCap: null, color: '#4ade80' });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTransactionsTab(user);
+
+    await user.click(screen.getByRole('button', { name: 'Add transaction' }));
+    const category = screen.getByLabelText('Category');
+    expect(within(category).getByRole('option', { name: 'Food' })).toBeInTheDocument();
+    expect(within(category).queryByRole('option', { name: 'Salary' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Income'));
+    expect(within(category).getByRole('option', { name: 'Salary' })).toBeInTheDocument();
+    expect(within(category).queryByRole('option', { name: 'Food' })).not.toBeInTheDocument();
   });
 
   test('deletes a transaction after confirmation', async () => {

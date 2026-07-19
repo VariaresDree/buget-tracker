@@ -3,13 +3,17 @@ import { useAppStore } from '../store/useAppStore';
 import { db } from './db';
 import {
   addAccount,
+  addCategory,
   addTransaction,
   addTransfer,
   deleteAccount,
+  deleteCategory,
   deleteTransaction,
   listAccounts,
+  listCategories,
   listTransactions,
   updateAccount,
+  updateCategory,
   updateTransaction,
 } from './repo';
 
@@ -150,11 +154,73 @@ describe('transfers', () => {
   });
 });
 
+describe('categories', () => {
+  test('stores the monthly cap as an envelope, or null for no cap', async () => {
+    const capped = await addCategory({ name: 'Food', type: 'expense', monthlyCap: 500000, color: '#f97316' });
+    const uncapped = await addCategory({ name: 'Misc', type: 'expense', monthlyCap: null, color: '#64748b' });
+
+    const cappedRaw = await db.categories.get(capped);
+    expect(cappedRaw).not.toHaveProperty('monthlyCap');
+    expect(typeof cappedRaw?.monthlyCapEnc?.ct).toBe('string');
+    expect(JSON.stringify(cappedRaw)).not.toContain('500000');
+
+    const uncappedRaw = await db.categories.get(uncapped);
+    expect(uncappedRaw?.monthlyCapEnc).toBeNull();
+  });
+
+  test('round-trips categories sorted by name', async () => {
+    await addCategory({ name: 'Transport', type: 'expense', monthlyCap: 200000, color: '#38bdf8' });
+    await addCategory({ name: 'Food', type: 'expense', monthlyCap: 500000, color: '#f97316' });
+    await addCategory({ name: 'Salary', type: 'income', monthlyCap: null, color: '#4ade80' });
+
+    const categories = await listCategories();
+    expect(categories.map((c) => c.name)).toEqual(['Food', 'Salary', 'Transport']);
+    expect(categories[0]).toMatchObject({ type: 'expense', monthlyCap: 500000, archived: false });
+    expect(categories[1]).toMatchObject({ type: 'income', monthlyCap: null });
+  });
+
+  test('updateCategory can change, clear, and set the cap', async () => {
+    const id = await addCategory({ name: 'Food', type: 'expense', monthlyCap: 500000, color: '#f97316' });
+
+    await updateCategory(id, { monthlyCap: 300000 });
+    expect((await listCategories())[0].monthlyCap).toBe(300000);
+
+    await updateCategory(id, { monthlyCap: null });
+    expect((await listCategories())[0].monthlyCap).toBeNull();
+
+    await updateCategory(id, { monthlyCap: 100000, name: 'Groceries' });
+    expect((await listCategories())[0]).toMatchObject({ name: 'Groceries', monthlyCap: 100000 });
+  });
+
+  test('deleteCategory uncategorizes its transactions', async () => {
+    const acct = await addAccount({ name: 'W', type: 'cash', startingBalance: 0 });
+    const catId = await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#f97316' });
+    await addTransaction({ date: '2026-07-10', accountId: acct, amount: -100, categoryId: catId });
+
+    await deleteCategory(catId);
+
+    expect(await listCategories()).toHaveLength(0);
+    const [tx] = await listTransactions();
+    expect(tx.categoryId).toBeNull();
+  });
+
+  test('transactions keep their assigned category id', async () => {
+    const acct = await addAccount({ name: 'W', type: 'cash', startingBalance: 0 });
+    const catId = await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#f97316' });
+    await addTransaction({ date: '2026-07-10', accountId: acct, amount: -100, categoryId: catId });
+    const [tx] = await listTransactions();
+    expect(tx.categoryId).toBe(catId);
+  });
+});
+
 describe('locked vault', () => {
   test('repo operations reject instead of writing plaintext', async () => {
     useAppStore.getState().lockNow();
     await expect(
       addAccount({ name: 'W', type: 'cash', startingBalance: 0 }),
+    ).rejects.toThrow(/locked/i);
+    await expect(
+      addCategory({ name: 'Food', type: 'expense', monthlyCap: 1, color: '#fff' }),
     ).rejects.toThrow(/locked/i);
   });
 });

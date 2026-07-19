@@ -10,3 +10,11 @@ export function todayISO(): string {
 export function monthOf(dateISO: string): string {
   return dateISO.slice(0, 7);
 }
+
+export function addMonths(month: string, delta: number): string {
+  const [year, m] = month.split('-').map(Number);
+  const total = year * 12 + (m - 1) + delta;
+  const newYear = Math.floor(total / 12);
+  const newMonth = (total % 12) + 1;
+  return `${newYear}-${String(newMonth).padStart(2, '0')}`;
+}

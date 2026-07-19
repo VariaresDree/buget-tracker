@@ -10,7 +10,7 @@ import {
 import { db, type KdfParams } from '../db/db';
 // Type-only import: repo.ts imports getSessionKey from this module at runtime,
 // so the runtime dependency must stay one-directional (repo → store).
-import type { Account } from '../db/repo';
+import type { Account, Category } from '../db/repo';
 
 export interface Settings {
   currencyCode: string;
@@ -28,20 +28,22 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type LockStatus = 'loading' | 'uninitialized' | 'locked' | 'unlocked';
 
-export type TabId = 'dashboard' | 'transactions' | 'accounts';
+export type TabId = 'dashboard' | 'transactions' | 'accounts' | 'categories';
 
 interface AppState {
   lockStatus: LockStatus;
   sessionKey: CryptoKey | null;
   settings: Settings;
-  /** Decrypted account cache; null = not loaded. Wiped on lock. */
+  /** Decrypted caches; null = not loaded. Wiped on lock. */
   accounts: Account[] | null;
+  categories: Category[] | null;
   activeTab: TabId;
   init: () => Promise<void>;
   setupPassphrase: (passphrase: string) => Promise<void>;
   unlock: (passphrase: string) => Promise<boolean>;
   lockNow: () => void;
   setAccounts: (accounts: Account[]) => void;
+  setCategories: (categories: Category[]) => void;
   setActiveTab: (tab: TabId) => void;
 }
 
@@ -50,6 +52,7 @@ export const useAppStore = create<AppState>()((set) => ({
   sessionKey: null,
   settings: DEFAULT_SETTINGS,
   accounts: null,
+  categories: null,
   activeTab: 'dashboard',
 
   async init() {
@@ -97,11 +100,15 @@ export const useAppStore = create<AppState>()((set) => ({
 
   lockNow() {
     // Wipe every decrypted cache along with the key.
-    set({ sessionKey: null, lockStatus: 'locked', accounts: null });
+    set({ sessionKey: null, lockStatus: 'locked', accounts: null, categories: null });
   },
 
   setAccounts(accounts) {
     set({ accounts });
+  },
+
+  setCategories(categories) {
+    set({ categories });
   },
 
   setActiveTab(tab) {
