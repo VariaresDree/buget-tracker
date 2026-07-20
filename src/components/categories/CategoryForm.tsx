@@ -93,7 +93,7 @@ export default function CategoryForm({ category, onDone }: Props) {
             key={preset}
             type="button"
             className={preset === color ? 'swatch selected' : 'swatch'}
-            style={{ background: preset }}
+            style={{ '--swatch-color': preset } as React.CSSProperties}
             aria-label={`Color option ${i + 1}`}
             aria-pressed={preset === color}
             onClick={() => setColor(preset)}

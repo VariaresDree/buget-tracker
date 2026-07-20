@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Lock } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 export default function UnlockScreen() {
@@ -23,6 +24,9 @@ export default function UnlockScreen() {
 
   return (
     <div className="lock-screen">
+      <span className="lock-mark" aria-hidden="true">
+        <Lock size={28} strokeWidth={1.75} />
+      </span>
       <h1>Unlock</h1>
       <form onSubmit={onSubmit}>
         <label htmlFor="unlock-passphrase">Passphrase</label>

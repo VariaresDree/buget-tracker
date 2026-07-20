@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { addAccount, exportBackup, listAccounts } from '../../db/repo';
 import { useAppStore } from '../../store/useAppStore';
-import { renderApp, resetApp, unlockVault } from '../../test/helpers';
+import { openTab, renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
 
 async function openSettingsTab(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Settings' }));
+  await openTab(user, 'Settings');
 }
 
 describe('SettingsScreen', () => {

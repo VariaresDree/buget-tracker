@@ -27,10 +27,22 @@ export default function BudgetBar({ name, color, spent, cap, remaining, over, sy
       </div>
       {cap !== null ? (
         <>
-          <div className="budget-track">
+          <div
+            className="budget-track"
+            role="progressbar"
+            aria-valuenow={Math.round(pct)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`${name} budget used`}
+          >
+            {/* scaleX keeps the animation on the compositor (no layout) */}
             <div
               className="budget-fill"
-              style={{ width: `${pct}%`, background: over ? 'var(--danger)' : color }}
+              style={{
+                width: '100%',
+                transform: `scaleX(${pct / 100})`,
+                background: over ? 'var(--danger)' : color,
+              }}
             />
           </div>
           <span className={over ? 'form-error' : 'muted'}>

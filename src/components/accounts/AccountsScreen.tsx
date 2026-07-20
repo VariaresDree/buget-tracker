@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Pencil, Trash2, Wallet } from 'lucide-react';
 import { deleteAccount, listTransactions, type Account, type Transaction } from '../../db/repo';
 import { refreshAccounts, useAccounts } from '../../hooks/useAccounts';
 import { computeBalances } from '../../lib/balances';
 import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
+import EmptyState from '../common/EmptyState';
+import { ACCOUNT_ICONS } from '../dashboard/AccountChips';
 import AccountForm from './AccountForm';
 import { ACCOUNT_TYPE_LABELS } from './accountTypes';
 
@@ -46,39 +49,58 @@ export default function AccountsScreen() {
     <section>
       <div className="screen-head">
         <h2>Accounts</h2>
-        <button onClick={() => setMode('add')}>Add account</button>
+        {/* When empty, the empty-state CTA is the single primary action. */}
+        {accounts.length > 0 && (
+          <button className="btn-primary" onClick={() => setMode('add')}>
+            Add account
+          </button>
+        )}
       </div>
       {accounts.length === 0 ? (
-        <p className="placeholder">No accounts yet. Add your cash, e-wallet, bank, or credit card.</p>
+        <EmptyState
+          icon={Wallet}
+          title="No accounts yet"
+          hint="Add your cash, e-wallet, bank, or credit card to start tracking balances."
+          actionLabel="Add account"
+          onAction={() => setMode('add')}
+        />
       ) : (
         <ul className="card-list">
-          {accounts.map((account) => (
-            <li key={account.id}>
-              <div className="row-main">
-                <strong>{account.name}</strong>
-                <span className="muted">{ACCOUNT_TYPE_LABELS[account.type]}</span>
-              </div>
-              <div className="row-side">
-                <span className="amount">
-                  {formatMoney(balances.get(account.id) ?? account.startingBalance, symbol)}
-                </span>
-                <button
-                  className="secondary"
-                  aria-label={`Edit ${account.name}`}
-                  onClick={() => setMode({ editId: account.id })}
-                >
-                  Edit
-                </button>
-                <button
-                  className="secondary danger"
-                  aria-label={`Delete ${account.name}`}
-                  onClick={() => void onDelete(account)}
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
+          {accounts.map((account) => {
+            const Icon = ACCOUNT_ICONS[account.type];
+            return (
+              <li key={account.id}>
+                <div className="row-lead">
+                  <span className="row-avatar" aria-hidden="true">
+                    <Icon size={20} strokeWidth={1.75} />
+                  </span>
+                  <div className="row-main">
+                    <strong>{account.name}</strong>
+                    <span className="muted">{ACCOUNT_TYPE_LABELS[account.type]}</span>
+                  </div>
+                </div>
+                <div className="row-side">
+                  <span className="amount">
+                    {formatMoney(balances.get(account.id) ?? account.startingBalance, symbol)}
+                  </span>
+                  <button
+                    className="icon-btn"
+                    aria-label={`Edit ${account.name}`}
+                    onClick={() => setMode({ editId: account.id })}
+                  >
+                    <Pencil size={18} aria-hidden="true" />
+                  </button>
+                  <button
+                    className="icon-btn danger"
+                    aria-label={`Delete ${account.name}`}
+                    onClick={() => void onDelete(account)}
+                  >
+                    <Trash2 size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

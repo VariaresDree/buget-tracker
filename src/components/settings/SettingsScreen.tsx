@@ -98,85 +98,106 @@ export default function SettingsScreen() {
     <section className="settings">
       <h2>Settings</h2>
 
-      <h3 className="section-title">Currency</h3>
-      <label htmlFor="set-symbol">Currency symbol</label>
-      <input id="set-symbol" value={symbol} onChange={(e) => { setSymbol(e.target.value); setSaved(false); }} />
-      <label htmlFor="set-code">Currency code</label>
-      <input id="set-code" value={code} onChange={(e) => { setCode(e.target.value); setSaved(false); }} />
-
-      <h3 className="section-title">Appearance</h3>
-      <label htmlFor="set-theme">Theme</label>
-      <select
-        id="set-theme"
-        value={settings.theme}
-        onChange={(e) => void saveSettings({ theme: e.target.value as Settings['theme'] })}
-      >
-        <option value="system">System</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-
-      <h3 className="section-title">Security</h3>
-      <label htmlFor="set-autolock">Auto-lock after (minutes)</label>
-      <input
-        id="set-autolock"
-        inputMode="numeric"
-        value={autoLock}
-        onChange={(e) => { setAutoLock(e.target.value); setSaved(false); }}
-      />
-
-      <div className="form-actions">
-        <button onClick={() => void onSave()}>Save settings</button>
-        {saved && <span className="muted">Settings saved.</span>}
+      <div className="settings-card">
+        <h3 className="section-title">Appearance</h3>
+        <label htmlFor="set-theme">Theme</label>
+        <select
+          id="set-theme"
+          value={settings.theme}
+          onChange={(e) => void saveSettings({ theme: e.target.value as Settings['theme'] })}
+        >
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
       </div>
 
-      {passDone && <p className="muted">Passphrase changed.</p>}
-      {!showPassphrase ? (
-        <div className="form-actions">
-          <button className="secondary" onClick={() => { setShowPassphrase(true); setPassDone(false); }}>
-            Change passphrase
-          </button>
-        </div>
-      ) : (
-        <form className="panel-form" onSubmit={onChangePassphrase}>
-          <label htmlFor="pp-current">Current passphrase</label>
-          <input id="pp-current" type="password" autoComplete="current-password"
-            value={current} onChange={(e) => setCurrent(e.target.value)} />
-          <label htmlFor="pp-new">New passphrase</label>
-          <input id="pp-new" type="password" autoComplete="new-password"
-            value={next} onChange={(e) => setNext(e.target.value)} />
-          <label htmlFor="pp-confirm">Confirm new passphrase</label>
-          <input id="pp-confirm" type="password" autoComplete="new-password"
-            value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-          {passError && <p className="form-error">{passError}</p>}
-          <div className="form-actions">
-            <button type="button" className="secondary" onClick={() => setShowPassphrase(false)}>
-              Cancel
-            </button>
-            <button type="submit" disabled={busy}>
-              {busy ? 'Updating…' : 'Update passphrase'}
-            </button>
-          </div>
-        </form>
-      )}
+      <div className="settings-card">
+        <h3 className="section-title">Currency</h3>
+        <label htmlFor="set-symbol">Currency symbol</label>
+        <input id="set-symbol" value={symbol} onChange={(e) => { setSymbol(e.target.value); setSaved(false); }} />
+        <label htmlFor="set-code">Currency code</label>
+        <input id="set-code" value={code} onChange={(e) => { setCode(e.target.value); setSaved(false); }} />
 
-      <h3 className="section-title">Backup</h3>
-      <p className="muted">
-        Your backup stays encrypted and only opens with your current passphrase.
-      </p>
-      <div className="backup-actions">
-        <button className="secondary" onClick={onExport}>Export backup</button>
-        <label htmlFor="set-restore" className="file-button">Restore from backup</label>
+        <label htmlFor="set-autolock">Auto-lock after (minutes)</label>
         <input
-          id="set-restore"
-          type="file"
-          accept="application/json,.json"
-          onChange={(e) => void onRestore(e)}
+          id="set-autolock"
+          inputMode="numeric"
+          value={autoLock}
+          onChange={(e) => { setAutoLock(e.target.value); setSaved(false); }}
         />
-      </div>
-      {restoreError && <p className="form-error">{restoreError}</p>}
+        <p className="helper-text">The vault locks itself after this much inactivity.</p>
 
-      <SyncSection />
+        <div className="form-actions">
+          <button className="btn-primary" onClick={() => void onSave()}>
+            Save settings
+          </button>
+          {saved && <span className="muted">Settings saved.</span>}
+        </div>
+      </div>
+
+      <div className="settings-card">
+        <h3 className="section-title">Security</h3>
+        {passDone && <p className="muted">Passphrase changed.</p>}
+        {!showPassphrase ? (
+          <>
+            <p className="helper-text">
+              Changing it re-encrypts everything on this device.
+            </p>
+            <div className="form-actions">
+              <button
+                className="secondary"
+                onClick={() => { setShowPassphrase(true); setPassDone(false); }}
+              >
+                Change passphrase
+              </button>
+            </div>
+          </>
+        ) : (
+          <form className="panel-form" onSubmit={onChangePassphrase}>
+            <label htmlFor="pp-current">Current passphrase</label>
+            <input id="pp-current" type="password" autoComplete="current-password"
+              value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <label htmlFor="pp-new">New passphrase</label>
+            <input id="pp-new" type="password" autoComplete="new-password"
+              value={next} onChange={(e) => setNext(e.target.value)} />
+            <label htmlFor="pp-confirm">Confirm new passphrase</label>
+            <input id="pp-confirm" type="password" autoComplete="new-password"
+              value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            {passError && <p className="form-error">{passError}</p>}
+            <div className="form-actions">
+              <button type="button" className="secondary" onClick={() => setShowPassphrase(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary" disabled={busy}>
+                {busy ? 'Updating…' : 'Update passphrase'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <div className="settings-card">
+        <h3 className="section-title">Backup</h3>
+        <p className="helper-text">
+          Your backup stays encrypted and only opens with your current passphrase.
+        </p>
+        <div className="backup-actions">
+          <button className="secondary" onClick={onExport}>Export backup</button>
+          <label htmlFor="set-restore" className="file-button">Restore from backup</label>
+          <input
+            id="set-restore"
+            type="file"
+            accept="application/json,.json"
+            onChange={(e) => void onRestore(e)}
+          />
+        </div>
+        {restoreError && <p className="form-error">{restoreError}</p>}
+      </div>
+
+      <div className="settings-card">
+        <SyncSection />
+      </div>
     </section>
   );
 }

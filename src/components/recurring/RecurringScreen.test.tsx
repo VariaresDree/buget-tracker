@@ -2,12 +2,12 @@ import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { addAccount, addRecurringRule, listRecurringRules } from '../../db/repo';
-import { renderApp, resetApp, unlockVault } from '../../test/helpers';
+import { openTab, renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
 
 async function openRecurringTab(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Recurring' }));
+  await openTab(user, 'Recurring');
 }
 
 describe('RecurringScreen', () => {

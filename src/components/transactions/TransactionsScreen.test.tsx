@@ -2,12 +2,12 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { addAccount, addCategory, addTransaction, listTransactions } from '../../db/repo';
-import { renderApp, resetApp, unlockVault } from '../../test/helpers';
+import { openTab, renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
 
 async function openTransactionsTab(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Transactions' }));
+  await openTab(user, 'Transactions');
 }
 
 describe('TransactionsScreen', () => {

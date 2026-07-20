@@ -35,6 +35,7 @@ export type TabId =
   | 'transactions'
   | 'accounts'
   | 'categories'
+  | 'more'
   | 'recurring'
   | 'import'
   | 'settings';
@@ -61,6 +62,10 @@ interface AppState {
   setAccounts: (accounts: Account[]) => void;
   setCategories: (categories: Category[]) => void;
   setActiveTab: (tab: TabId) => void;
+  /** Set by the quick-add FAB; the transactions screen consumes and clears it. */
+  pendingQuickAdd: boolean;
+  requestQuickAdd: () => void;
+  clearQuickAdd: () => void;
   saveSettings: (patch: Partial<Settings>) => Promise<void>;
   touchData: () => void;
   refreshSyncEmail: () => Promise<void>;
@@ -75,6 +80,7 @@ export const useAppStore = create<AppState>()((set) => ({
   accounts: null,
   categories: null,
   activeTab: 'dashboard',
+  pendingQuickAdd: false,
   syncEmail: null,
   syncStatus: 'idle',
   lastSyncedAt: null,
@@ -160,6 +166,14 @@ export const useAppStore = create<AppState>()((set) => ({
 
   setActiveTab(tab) {
     set({ activeTab: tab });
+  },
+
+  requestQuickAdd() {
+    set({ pendingQuickAdd: true });
+  },
+
+  clearQuickAdd() {
+    set({ pendingQuickAdd: false });
   },
 
   async saveSettings(patch) {

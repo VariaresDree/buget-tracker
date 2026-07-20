@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { addAccount, commitImport, listImportPresets, listTransactions } from '../../db/repo';
 import { computeImportHash } from '../../lib/csv/dedupe';
-import { renderApp, resetApp, unlockVault } from '../../test/helpers';
+import { openTab, renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
 
@@ -19,7 +19,7 @@ function csvFile(text = CSV, name = 'stmt.csv') {
 }
 
 async function openImport(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Import' }));
+  await openTab(user, 'Import');
 }
 
 async function toMapStep(user: ReturnType<typeof userEvent.setup>, file: File) {

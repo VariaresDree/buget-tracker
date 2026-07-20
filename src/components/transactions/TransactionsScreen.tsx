@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeftRight, Pencil, Receipt, Trash2 } from 'lucide-react';
 import { deleteTransaction, listTransactions, type Transaction } from '../../db/repo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
 import { monthOf } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
+import EmptyState from '../common/EmptyState';
 import TransactionForm from './TransactionForm';
 import TransferForm from './TransferForm';
 
@@ -22,6 +24,18 @@ export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const [filterAccount, setFilterAccount] = useState<'all' | number>('all');
   const [filterMonth, setFilterMonth] = useState<'all' | string>('all');
+  const pendingQuickAdd = useAppStore((s) => s.pendingQuickAdd);
+  const clearQuickAdd = useAppStore((s) => s.clearQuickAdd);
+  // `accounts` is [] both while loading and when genuinely empty — the raw
+  // store value distinguishes them, so the FAB isn't dismissed prematurely.
+  const accountsLoaded = useAppStore((s) => s.accounts !== null);
+
+  // The floating quick-add button opens this screen's form.
+  useEffect(() => {
+    if (!pendingQuickAdd || !accountsLoaded) return;
+    clearQuickAdd();
+    if (accounts.length > 0) setMode({ kind: 'add' });
+  }, [pendingQuickAdd, accountsLoaded, accounts.length, clearQuickAdd]);
 
   const reload = useCallback(async () => {
     setTransactions(await listTransactions());
@@ -81,6 +95,7 @@ export default function TransactionsScreen() {
         <h2>Transactions</h2>
         <div className="screen-actions">
           <button
+            className="btn-primary"
             disabled={accounts.length === 0}
             onClick={() => setMode({ kind: 'add' })}
           >
@@ -128,44 +143,77 @@ export default function TransactionsScreen() {
       </div>
 
       {visible.length === 0 ? (
-        <p className="placeholder">No transactions yet.</p>
+        <EmptyState
+          icon={Receipt}
+          title="No transactions yet"
+          hint={
+            accounts.length === 0
+              ? 'Add an account first, then log your spending and income here.'
+              : 'Log your first expense or income to see it here.'
+          }
+        />
       ) : (
         <ul className="card-list">
-          {visible.map((tx) => (
-            <li key={tx.id}>
-              <div className="row-main">
-                <strong>
-                  {tx.transferGroupId
-                    ? tx.amount < 0
-                      ? 'Transfer out'
-                      : 'Transfer in'
-                    : (categories.find((c) => c.id === tx.categoryId)?.name ??
-                      accountName(tx.accountId))}
-                </strong>
-                <span className="muted">
-                  {tx.date}
-                  {tx.note && ` · `}
-                  {tx.note && <span>{tx.note}</span>}
-                </span>
-              </div>
-              <div className="row-side">
-                <span className={tx.amount >= 0 ? 'amount income' : 'amount'}>
-                  {formatMoney(tx.amount, symbol)}
-                </span>
-                {!tx.transferGroupId && (
-                  <button
-                    className="secondary"
-                    onClick={() => setMode({ kind: 'edit', tx })}
+          {visible.map((tx) => {
+            const category = categories.find((c) => c.id === tx.categoryId);
+            const isTransfer = Boolean(tx.transferGroupId);
+            return (
+              <li key={tx.id}>
+                <div className="row-lead">
+                  <span
+                    className="row-avatar"
+                    aria-hidden="true"
+                    style={
+                      category
+                        ? { background: `${category.color}22`, color: category.color }
+                        : undefined
+                    }
                   >
-                    Edit
+                    {isTransfer ? (
+                      <ArrowLeftRight size={20} strokeWidth={1.75} />
+                    ) : (
+                      <Receipt size={20} strokeWidth={1.75} />
+                    )}
+                  </span>
+                  <div className="row-main">
+                    <strong>
+                      {isTransfer
+                        ? tx.amount < 0
+                          ? 'Transfer out'
+                          : 'Transfer in'
+                        : (category?.name ?? accountName(tx.accountId))}
+                    </strong>
+                    <span className="muted">
+                      {tx.date}
+                      {tx.note && ` · `}
+                      {tx.note && <span>{tx.note}</span>}
+                    </span>
+                  </div>
+                </div>
+                <div className="row-side">
+                  <span className={tx.amount >= 0 ? 'amount income' : 'amount'}>
+                    {formatMoney(tx.amount, symbol)}
+                  </span>
+                  {!isTransfer && (
+                    <button
+                      className="icon-btn"
+                      aria-label="Edit"
+                      onClick={() => setMode({ kind: 'edit', tx })}
+                    >
+                      <Pencil size={18} aria-hidden="true" />
+                    </button>
+                  )}
+                  <button
+                    className="icon-btn danger"
+                    aria-label="Delete"
+                    onClick={() => void onDelete(tx)}
+                  >
+                    <Trash2 size={18} aria-hidden="true" />
                   </button>
-                )}
-                <button className="secondary danger" onClick={() => void onDelete(tx)}>
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

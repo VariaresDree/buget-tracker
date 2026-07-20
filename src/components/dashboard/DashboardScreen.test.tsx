@@ -93,7 +93,7 @@ describe('DashboardScreen', () => {
     await renderApp();
 
     // Total spend equals the single category's spend, so scope to the stat card.
-    const spentCard = screen.getByText('Spent').closest('.stat-card')! as HTMLElement;
+    const spentCard = screen.getByText('Spent').closest('.hero-pill')! as HTMLElement;
     expect(await within(spentCard).findByText('₱300.00')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Previous month' }));

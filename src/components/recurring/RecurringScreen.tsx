@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Pause, Play, Repeat, Trash2 } from 'lucide-react';
 import {
   deleteRecurringRule,
   listRecurringRules,
@@ -8,6 +9,7 @@ import {
 import { useAccounts } from '../../hooks/useAccounts';
 import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
+import EmptyState from '../common/EmptyState';
 import RecurringForm from './RecurringForm';
 
 const FREQ_LABEL = { daily: 'day', weekly: 'week', monthly: 'month' } as const;
@@ -50,45 +52,66 @@ export default function RecurringScreen() {
     <section>
       <div className="screen-head">
         <h2>Recurring</h2>
-        <button disabled={accounts.length === 0} onClick={() => setAdding(true)}>
-          Add recurring
-        </button>
+        {rules !== null && rules.length > 0 && (
+          <button
+            className="btn-primary"
+            disabled={accounts.length === 0}
+            onClick={() => setAdding(true)}
+          >
+            Add recurring
+          </button>
+        )}
       </div>
       <p className="muted">
         Due transactions are logged automatically when you unlock the app.
       </p>
 
       {rules === null ? null : rules.length === 0 ? (
-        <p className="placeholder">No recurring transactions yet.</p>
+        <EmptyState
+          icon={Repeat}
+          title="No recurring transactions yet"
+          hint="Set up rent, salary, or subscriptions once and they log themselves on schedule."
+          actionLabel={accounts.length > 0 ? 'Add recurring' : undefined}
+          onAction={accounts.length > 0 ? () => setAdding(true) : undefined}
+        />
       ) : (
         <ul className="card-list">
           {rules.map((rule) => (
             <li key={rule.id}>
-              <div className="row-main">
-                <strong>{rule.note || '(no note)'}</strong>
-                <span className="muted">
-                  {cadence(rule)} · next {rule.nextRunDate}
-                  {!rule.active && ' · '}
-                  {!rule.active && <span className="pill">Paused</span>}
+              <div className="row-lead">
+                <span className="row-avatar" aria-hidden="true">
+                  <Repeat size={20} strokeWidth={1.75} />
                 </span>
+                <div className="row-main">
+                  <strong>{rule.note || '(no note)'}</strong>
+                  <span className="muted">
+                    {cadence(rule)} · next {rule.nextRunDate}
+                    {!rule.active && ' · '}
+                    {!rule.active && <span className="pill">Paused</span>}
+                  </span>
+                </div>
               </div>
               <div className="row-side">
                 <span className={rule.amount >= 0 ? 'amount income' : 'amount'}>
                   {formatMoney(rule.amount, symbol)}
                 </span>
                 <button
-                  className="secondary"
+                  className="icon-btn"
                   aria-label={`${rule.active ? 'Pause' : 'Resume'} ${rule.note || 'rule'}`}
                   onClick={() => void togglePause(rule)}
                 >
-                  {rule.active ? 'Pause' : 'Resume'}
+                  {rule.active ? (
+                    <Pause size={18} aria-hidden="true" />
+                  ) : (
+                    <Play size={18} aria-hidden="true" />
+                  )}
                 </button>
                 <button
-                  className="secondary danger"
+                  className="icon-btn danger"
                   aria-label={`Delete ${rule.note || 'rule'}`}
                   onClick={() => void onDelete(rule)}
                 >
-                  Delete
+                  <Trash2 size={18} aria-hidden="true" />
                 </button>
               </div>
             </li>
