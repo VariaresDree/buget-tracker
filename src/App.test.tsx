@@ -51,11 +51,22 @@ describe('first run', () => {
     expect(await screen.findByText(/at least 8 characters/i)).toBeInTheDocument();
   });
 
-  test('creates the vault and lands unlocked', async () => {
+  test('creates the vault, runs the starter wizard, and lands unlocked', async () => {
     const user = userEvent.setup();
     render(<App />);
     await fillSetupForm(user, PASSPHRASE, PASSPHRASE);
+
+    // Step 1: seed all starter accounts. Step 2: skip categories. Step 3: finish.
+    await screen.findByRole('heading', { name: 'Starter accounts' });
+    await user.click(screen.getByRole('button', { name: 'Add selected (4)' }));
+    await screen.findByRole('heading', { name: 'Starter categories' });
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
+    await screen.findByRole('heading', { name: 'Keep your data safe' });
+    await user.click(screen.getByRole('button', { name: 'Finish setup' }));
+
     expect(await screen.findByRole('button', { name: 'Lock' })).toBeInTheDocument();
+    expect(await db.accounts.count()).toBe(4);
+    expect(await db.categories.count()).toBe(0);
   });
 });
 

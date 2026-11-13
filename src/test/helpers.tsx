@@ -18,6 +18,8 @@ export async function resetApp() {
 /** Create a vault; leaves the store unlocked so repo seeds can run. */
 export async function unlockVault() {
   await useAppStore.getState().setupPassphrase(PASSPHRASE);
+  // These tests model an already-set-up vault; the first-run wizard has its own test.
+  useAppStore.getState().finishOnboarding();
 }
 
 /** Render the app shell (vault must already be unlocked). */

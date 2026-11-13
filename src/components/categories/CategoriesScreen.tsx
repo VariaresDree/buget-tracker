@@ -5,9 +5,10 @@ import { refreshCategories, useCategories } from '../../hooks/useCategories';
 import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
+import StarterPicker from '../onboarding/StarterPicker';
 import CategoryForm from './CategoryForm';
 
-type Mode = 'list' | 'add' | { editId: number };
+type Mode = 'list' | 'add' | 'starter' | { editId: number };
 
 export default function CategoriesScreen() {
   const categories = useCategories();
@@ -28,6 +29,9 @@ export default function CategoriesScreen() {
 
   if (mode === 'add') {
     return <CategoryForm onDone={() => setMode('list')} />;
+  }
+  if (mode === 'starter') {
+    return <StarterPicker kind="categories" onDone={() => setMode('list')} />;
   }
   if (typeof mode === 'object') {
     return (
@@ -55,6 +59,8 @@ export default function CategoriesScreen() {
           hint="Add ones like Food, Transport, or Salary — expense categories can carry a monthly budget cap."
           actionLabel="Add category"
           onAction={() => setMode('add')}
+          secondaryLabel="Use a starter set"
+          onSecondary={() => setMode('starter')}
         />
       ) : (
         <ul className="card-list">

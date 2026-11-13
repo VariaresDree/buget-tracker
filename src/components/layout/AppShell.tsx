@@ -12,6 +12,7 @@ import ImportScreen from '../import/ImportScreen';
 import RecurringScreen from '../recurring/RecurringScreen';
 import SettingsScreen from '../settings/SettingsScreen';
 import SetupPassphraseScreen from '../lock/SetupPassphraseScreen';
+import StarterSetupScreen from '../onboarding/StarterSetupScreen';
 import UnlockScreen from '../lock/UnlockScreen';
 import TransactionsScreen from '../transactions/TransactionsScreen';
 import MoreScreen from './MoreScreen';
@@ -27,6 +28,7 @@ export default function AppShell() {
   const activeTab = useAppStore((s) => s.activeTab);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const requestQuickAdd = useAppStore((s) => s.requestQuickAdd);
+  const needsOnboarding = useAppStore((s) => s.needsOnboarding);
 
   useEffect(() => {
     if (lockStatus === 'loading') void init();
@@ -39,6 +41,7 @@ export default function AppShell() {
   if (lockStatus === 'loading') return null;
   if (lockStatus === 'uninitialized') return <SetupPassphraseScreen />;
   if (lockStatus === 'locked') return <UnlockScreen />;
+  if (needsOnboarding) return <StarterSetupScreen />;
 
   function onQuickAdd() {
     setActiveTab('transactions');

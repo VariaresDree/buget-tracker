@@ -1,5 +1,8 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { changePassphrase, exportBackup, importBackup } from '../../db/repo';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { db } from '../../db/db';
+import { changePassphrase, importBackup } from '../../db/repo';
+import { downloadBackup } from '../../lib/backupFile';
+import { storageStatus } from '../../lib/persistence';
 import { useAppStore, type Settings } from '../../store/useAppStore';
 import SyncSection from './SyncSection';
 
@@ -44,14 +47,34 @@ export default function SettingsScreen() {
   }
 
   function onExport() {
-    void exportBackup().then((json) => {
-      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `budget-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+    void downloadBackup();
+  }
+
+  const lastBackupAt = useAppStore((s) => s.lastBackupAt);
+  const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [safety, setSafety] = useState<{ json: string; at: number } | null>(null);
+
+  useEffect(() => {
+    void storageStatus().then((s) => setPersisted(s.persisted));
+    void db.meta.get('sync-safety').then((row) => {
+      if (row) setSafety(row.value as { json: string; at: number });
     });
+  }, []);
+
+  async function onRestoreSafety() {
+    if (!safety) return;
+    if (
+      !window.confirm(
+        'Restore the copy saved before the last sync replaced this device’s data? This replaces all current data and locks the app.',
+      )
+    ) {
+      return;
+    }
+    const syncRow = await db.meta.get('sync');
+    await importBackup(safety.json);
+    // Keep the current server version so the next sync doesn't pull over this restore.
+    if (syncRow) await db.meta.put(syncRow);
+    lockNow();
   }
 
   async function onChangePassphrase(e: FormEvent) {
@@ -193,6 +216,23 @@ export default function SettingsScreen() {
           />
         </div>
         {restoreError && <p className="form-error">{restoreError}</p>}
+        <p className="helper-text">
+          Last backup:{' '}
+          {lastBackupAt ? new Date(lastBackupAt).toLocaleDateString() : 'never'}
+          {persisted !== null && (
+            <>
+              {' · '}Offline storage:{' '}
+              {persisted ? 'protected' : 'best-effort (the browser may clear it — keep a backup)'}
+            </>
+          )}
+        </p>
+        {safety && (
+          <div className="backup-actions">
+            <button className="secondary" onClick={() => void onRestoreSafety()}>
+              Restore pre-sync snapshot ({new Date(safety.at).toLocaleDateString()})
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="settings-card">
