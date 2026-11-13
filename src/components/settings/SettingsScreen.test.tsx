@@ -1,7 +1,8 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { addAccount, exportBackup, listAccounts } from '../../db/repo';
+import { db } from '../../db/db';
+import { addAccount, deleteAccount, exportBackup, listAccounts } from '../../db/repo';
 import { useAppStore } from '../../store/useAppStore';
 import { openTab, renderApp, resetApp, unlockVault } from '../../test/helpers';
 
@@ -97,5 +98,37 @@ describe('SettingsScreen', () => {
     // Data survived the round trip.
     await useAppStore.getState().unlock('correct horse battery');
     expect((await listAccounts())[0]).toMatchObject({ name: 'Restored Bank', startingBalance: 42000 });
+  });
+
+  test('restores the pre-sync snapshot, keeps the sync version, and re-locks', async () => {
+    await unlockVault();
+    const before = await addAccount({ name: 'Before Sync', type: 'cash', startingBalance: 5000 });
+    const snapshot = await exportBackup();
+
+    // Simulate a sync pull that replaced local data after saving the snapshot.
+    await deleteAccount(before);
+    await addAccount({ name: 'After Sync', type: 'bank', startingBalance: 100 });
+    await db.meta.put({ key: 'sync-safety', value: { json: snapshot, at: Date.now() } });
+    await db.meta.put({ key: 'sync', value: { version: 7 } });
+
+    const user = userEvent.setup();
+    await renderApp();
+    await openSettingsTab(user);
+    const restore = await screen.findByRole('button', { name: /restore pre-sync snapshot/i });
+
+    // Declining leaves everything as it is.
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await user.click(restore);
+    expect((await listAccounts()).map((a) => a.name)).toEqual(['After Sync']);
+
+    confirm.mockReturnValue(true);
+    await user.click(restore);
+    expect(await screen.findByRole('heading', { name: 'Unlock' })).toBeInTheDocument();
+    expect(useAppStore.getState().sessionKey).toBeNull();
+
+    await useAppStore.getState().unlock('correct horse battery');
+    expect((await listAccounts()).map((a) => a.name)).toEqual(['Before Sync']);
+    // The current server version survives, so the next sync won't pull over the restore.
+    expect((await db.meta.get('sync'))?.value).toEqual({ version: 7 });
   });
 });
