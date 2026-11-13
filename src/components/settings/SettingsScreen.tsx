@@ -1,7 +1,14 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { db } from '../../db/db';
-import { changePassphrase, importBackup } from '../../db/repo';
-import { downloadBackup } from '../../lib/backupFile';
+import {
+  changePassphrase,
+  importBackup,
+  listAccounts,
+  listCategories,
+  listTransactions,
+} from '../../db/repo';
+import { downloadBackup, saveFile } from '../../lib/backupFile';
+import { transactionsCsv } from '../../lib/exportCsv';
 import { storageStatus } from '../../lib/persistence';
 import { useAppStore, type Settings } from '../../store/useAppStore';
 import SyncSection from './SyncSection';
@@ -48,6 +55,20 @@ export default function SettingsScreen() {
 
   function onExport() {
     void downloadBackup();
+  }
+
+  async function onExportCsv() {
+    const [transactions, accounts, categories] = await Promise.all([
+      listTransactions(),
+      listAccounts(),
+      listCategories(),
+    ]);
+    saveFile(
+      'budget-transactions',
+      'csv',
+      transactionsCsv(transactions, accounts, categories),
+      'text/csv',
+    );
   }
 
   const lastBackupAt = useAppStore((s) => s.lastBackupAt);
@@ -225,6 +246,15 @@ export default function SettingsScreen() {
               {persisted ? 'protected' : 'best-effort (the browser may clear it — keep a backup)'}
             </>
           )}
+        </p>
+        <div className="backup-actions">
+          <button className="secondary" onClick={() => void onExportCsv()}>
+            Export transactions (CSV)
+          </button>
+        </div>
+        <p className="helper-text">
+          A readable spreadsheet of every transaction. This file is not encrypted — keep it
+          somewhere private.
         </p>
         {safety && (
           <div className="backup-actions">
