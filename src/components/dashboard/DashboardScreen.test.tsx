@@ -99,7 +99,11 @@ describe('DashboardScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Previous month' }));
 
     expect(await within(spentCard).findByText('₱1,200.00')).toBeInTheDocument();
-    expect(screen.getByText(lastMonth)).toBeInTheDocument();
+    const lastMonthLabel = new Date(`${lastMonth}-01T00:00`).toLocaleDateString(undefined, {
+      month: 'long',
+      year: 'numeric',
+    });
+    expect(screen.getByText(lastMonthLabel)).toBeInTheDocument();
     expect(screen.queryByText('₱300.00')).not.toBeInTheDocument();
   });
 });

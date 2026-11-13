@@ -8,6 +8,7 @@ import {
   verifyKeycheck,
 } from '../crypto/keys';
 import { db, type KdfParams } from '../db/db';
+import { requestPersistentStorage } from '../lib/persistence';
 // Type-only import: repo.ts imports getSessionKey from this module at runtime,
 // so the runtime dependency must stay one-directional (repo → store).
 import type { Account, Category } from '../db/repo';
@@ -48,6 +49,10 @@ interface AppState {
   accounts: Account[] | null;
   categories: Category[] | null;
   activeTab: TabId;
+  /** True only right after a fresh setup, so the starter wizard shows once. */
+  needsOnboarding: boolean;
+  /** Epoch ms of the last backup download; null = never. Plaintext meta. */
+  lastBackupAt: number | null;
   // --- sync slice ---
   syncEmail: string | null;
   syncStatus: SyncStatus;
@@ -62,6 +67,7 @@ interface AppState {
   setAccounts: (accounts: Account[]) => void;
   setCategories: (categories: Category[]) => void;
   setActiveTab: (tab: TabId) => void;
+  finishOnboarding: () => void;
   /** Set by the quick-add FAB; the transactions screen consumes and clears it. */
   pendingQuickAdd: boolean;
   requestQuickAdd: () => void;
@@ -80,6 +86,8 @@ export const useAppStore = create<AppState>()((set) => ({
   accounts: null,
   categories: null,
   activeTab: 'dashboard',
+  needsOnboarding: false,
+  lastBackupAt: null,
   pendingQuickAdd: false,
   syncEmail: null,
   syncStatus: 'idle',
@@ -89,15 +97,17 @@ export const useAppStore = create<AppState>()((set) => ({
   lastSyncedEpoch: 0,
 
   async init() {
-    const [kdf, settingsRow] = await Promise.all([
+    const [kdf, settingsRow, backupRow] = await Promise.all([
       db.meta.get('kdfParams'),
       db.meta.get('settings'),
+      db.meta.get('lastBackupAt'),
     ]);
     // Load persisted settings (plaintext in meta) so the theme is right on the
     // lock screen, before any passphrase is entered.
     set({
       lockStatus: kdf ? 'locked' : 'uninitialized',
       settings: (settingsRow?.value as Settings) ?? DEFAULT_SETTINGS,
+      lastBackupAt: (backupRow?.value as number) ?? null,
     });
   },
 
@@ -116,7 +126,9 @@ export const useAppStore = create<AppState>()((set) => ({
       { key: 'settings', value: DEFAULT_SETTINGS },
       { key: 'schemaVersion', value: 1 },
     ]);
-    set({ sessionKey: key, lockStatus: 'unlocked', settings: DEFAULT_SETTINGS });
+    set({ sessionKey: key, lockStatus: 'unlocked', settings: DEFAULT_SETTINGS, needsOnboarding: true });
+    // Ask the browser to keep the DB durable (best-effort, never blocks a write).
+    void requestPersistentStorage();
   },
 
   async unlock(passphrase) {
@@ -136,6 +148,8 @@ export const useAppStore = create<AppState>()((set) => ({
       lockStatus: 'unlocked',
       settings: (settingsRow?.value as Settings) ?? DEFAULT_SETTINGS,
     });
+    // Ask the browser to keep the DB durable (best-effort, never blocks a write).
+    void requestPersistentStorage();
 
     // Auto-log any recurring transactions that came due while away. Dynamic
     // import keeps the store→repo dependency one-directional at module load.
@@ -166,6 +180,10 @@ export const useAppStore = create<AppState>()((set) => ({
 
   setActiveTab(tab) {
     set({ activeTab: tab });
+  },
+
+  finishOnboarding() {
+    set({ needsOnboarding: false });
   },
 
   requestQuickAdd() {

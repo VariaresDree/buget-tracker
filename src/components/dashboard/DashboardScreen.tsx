@@ -10,6 +10,7 @@ import { addMonths, monthOf, todayISO } from '../../lib/dates';
 import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import AccountChips from './AccountChips';
+import BackupNudge from './BackupNudge';
 import BalanceHero from './BalanceHero';
 import BudgetBar from './BudgetBar';
 import CategoryPie from './CategoryPie';
@@ -72,7 +73,12 @@ export default function DashboardScreen() {
           >
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
-          <span className="month-label">{month}</span>
+          <span className="month-label">
+            {new Date(`${month}-01T00:00`).toLocaleDateString(undefined, {
+              month: 'long',
+              year: 'numeric',
+            })}
+          </span>
           <button
             className="icon-btn"
             aria-label="Next month"
@@ -82,6 +88,8 @@ export default function DashboardScreen() {
           </button>
         </div>
       </div>
+
+      {accounts.length > 0 && <BackupNudge />}
 
       <BalanceHero
         totalBalance={totalBalance}

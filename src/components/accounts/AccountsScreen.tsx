@@ -7,10 +7,11 @@ import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import { ACCOUNT_ICONS } from '../dashboard/AccountChips';
+import StarterPicker from '../onboarding/StarterPicker';
 import AccountForm from './AccountForm';
 import { ACCOUNT_TYPE_LABELS } from './accountTypes';
 
-type Mode = 'list' | 'add' | { editId: number };
+type Mode = 'list' | 'add' | 'starter' | { editId: number };
 
 export default function AccountsScreen() {
   const accounts = useAccounts();
@@ -35,6 +36,9 @@ export default function AccountsScreen() {
 
   if (mode === 'add') {
     return <AccountForm onDone={() => setMode('list')} />;
+  }
+  if (mode === 'starter') {
+    return <StarterPicker kind="accounts" onDone={() => setMode('list')} />;
   }
   if (typeof mode === 'object') {
     return (
@@ -63,6 +67,8 @@ export default function AccountsScreen() {
           hint="Add your cash, e-wallet, bank, or credit card to start tracking balances."
           actionLabel="Add account"
           onAction={() => setMode('add')}
+          secondaryLabel="Use a starter set"
+          onSecondary={() => setMode('starter')}
         />
       ) : (
         <ul className="card-list">
