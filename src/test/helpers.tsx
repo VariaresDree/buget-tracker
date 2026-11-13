@@ -37,7 +37,7 @@ export async function renderUnlocked() {
 /** Screens reached through the "More" tab (bottom nav is capped at 5). */
 const UNDER_MORE = new Set(['Recurring', 'Import', 'Settings']);
 /** Tab labels that differ from the screen name. */
-const TAB_LABEL: Record<string, string> = { Dashboard: 'Home', Categories: 'Budgets' };
+const TAB_LABEL: Record<string, string> = { Dashboard: 'Home' };
 
 /**
  * Navigate to a screen by its name, hopping through "More" when it's nested.

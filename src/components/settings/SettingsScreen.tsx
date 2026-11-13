@@ -1,5 +1,4 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { db } from '../../db/db';
 import {
   changePassphrase,
   importBackup,
@@ -7,7 +6,13 @@ import {
   listCategories,
   listTransactions,
 } from '../../db/repo';
-import { downloadBackup, saveFile } from '../../lib/backupFile';
+import {
+  downloadBackup,
+  getSafetySnapshot,
+  restoreSafetySnapshot,
+  saveFile,
+  type SafetySnapshot,
+} from '../../lib/backupFile';
 import { transactionsCsv } from '../../lib/exportCsv';
 import { storageStatus } from '../../lib/persistence';
 import { useAppStore, type Settings } from '../../store/useAppStore';
@@ -73,13 +78,11 @@ export default function SettingsScreen() {
 
   const lastBackupAt = useAppStore((s) => s.lastBackupAt);
   const [persisted, setPersisted] = useState<boolean | null>(null);
-  const [safety, setSafety] = useState<{ json: string; at: number } | null>(null);
+  const [safety, setSafety] = useState<SafetySnapshot | null>(null);
 
   useEffect(() => {
     void storageStatus().then((s) => setPersisted(s.persisted));
-    void db.meta.get('sync-safety').then((row) => {
-      if (row) setSafety(row.value as { json: string; at: number });
-    });
+    void getSafetySnapshot().then(setSafety);
   }, []);
 
   async function onRestoreSafety() {
@@ -91,11 +94,7 @@ export default function SettingsScreen() {
     ) {
       return;
     }
-    const syncRow = await db.meta.get('sync');
-    await importBackup(safety.json);
-    // Keep the current server version so the next sync doesn't pull over this restore.
-    if (syncRow) await db.meta.put(syncRow);
-    lockNow();
+    await restoreSafetySnapshot();
   }
 
   async function onChangePassphrase(e: FormEvent) {

@@ -16,6 +16,7 @@ import StarterSetupScreen from '../onboarding/StarterSetupScreen';
 import UnlockScreen from '../lock/UnlockScreen';
 import TransactionsScreen from '../transactions/TransactionsScreen';
 import MoreScreen from './MoreScreen';
+import SyncNotice from './SyncNotice';
 import TabBar from './TabBar';
 
 /** Quick-add is only offered where a transaction is the obvious next action. */
@@ -60,6 +61,7 @@ export default function AppShell() {
         </button>
       </header>
       <main className="app-main" id="main">
+        <SyncNotice />
         {activeTab === 'dashboard' && <DashboardScreen />}
         {activeTab === 'transactions' && <TransactionsScreen />}
         {activeTab === 'accounts' && <AccountsScreen />}

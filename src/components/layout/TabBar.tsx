@@ -6,7 +6,7 @@ const TABS: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'dashboard', label: 'Home', icon: Home },
   { id: 'transactions', label: 'Transactions', icon: Receipt },
   { id: 'accounts', label: 'Accounts', icon: Wallet },
-  { id: 'categories', label: 'Budgets', icon: PieChart },
+  { id: 'categories', label: 'Categories', icon: PieChart },
   { id: 'more', label: 'More', icon: MoreHorizontal },
 ];
 

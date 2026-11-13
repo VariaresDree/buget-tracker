@@ -1,3 +1,4 @@
+import Dexie from 'dexie';
 import { create } from 'zustand';
 import { fromBase64, toBase64, type Envelope } from '../crypto/envelope';
 import {
@@ -60,6 +61,11 @@ interface AppState {
   syncVersion: number; // last reconciled server version
   dataEpoch: number; // bumped on every local write
   lastSyncedEpoch: number; // dataEpoch captured at last successful sync
+  /** The 'dirty' meta row is written, so unsynced edits survive a restart. */
+  dirtyMarked: boolean;
+  /** A sync just replaced edits on this device that had not synced yet. */
+  syncReplacedEdits: boolean;
+  dismissSyncNotice: () => void;
   init: () => Promise<void>;
   setupPassphrase: (passphrase: string) => Promise<void>;
   unlock: (passphrase: string) => Promise<boolean>;
@@ -95,6 +101,8 @@ export const useAppStore = create<AppState>()((set) => ({
   syncVersion: 0,
   dataEpoch: 0,
   lastSyncedEpoch: 0,
+  dirtyMarked: false,
+  syncReplacedEdits: false,
 
   async init() {
     const [kdf, settingsRow, backupRow] = await Promise.all([
@@ -153,13 +161,21 @@ export const useAppStore = create<AppState>()((set) => ({
 
     // Auto-log any recurring transactions that came due while away. Dynamic
     // import keeps the store→repo dependency one-directional at module load.
+    // Edits that never synced before the app last closed are still unsynced.
+    const wasDirty = Boolean(await db.meta.get('dirty'));
     const { runDueRecurring } = await import('../db/repo');
     await runDueRecurring();
+    // Rows auto-generated just now are not user edits; don't let them mark the vault dirty.
+    if (!wasDirty) await db.meta.delete('dirty');
 
-    // Load sync bookkeeping; treat freshly-unlocked state as clean.
+    // Load sync bookkeeping.
     const syncRow = await db.meta.get('sync');
     const syncVersion = (syncRow?.value as { version: number } | undefined)?.version ?? 0;
-    set({ syncVersion, lastSyncedEpoch: useAppStore.getState().dataEpoch });
+    set({
+      syncVersion,
+      lastSyncedEpoch: wasDirty ? -1 : useAppStore.getState().dataEpoch,
+      dirtyMarked: wasDirty,
+    });
     // Pull any updates made on other devices (non-blocking, offline-safe).
     void useAppStore.getState().refreshSyncEmail().then(() => useAppStore.getState().runSync());
     return true;
@@ -167,7 +183,13 @@ export const useAppStore = create<AppState>()((set) => ({
 
   lockNow() {
     // Wipe every decrypted cache along with the key.
-    set({ sessionKey: null, lockStatus: 'locked', accounts: null, categories: null });
+    set({
+      sessionKey: null,
+      lockStatus: 'locked',
+      accounts: null,
+      categories: null,
+      syncReplacedEdits: false,
+    });
   },
 
   setAccounts(accounts) {
@@ -201,7 +223,19 @@ export const useAppStore = create<AppState>()((set) => ({
   },
 
   touchData() {
-    set((s) => ({ dataEpoch: s.dataEpoch + 1 }));
+    const first = !useAppStore.getState().dirtyMarked;
+    set((s) => ({ dataEpoch: s.dataEpoch + 1, dirtyMarked: true }));
+    // Persist the dirty flag once so a restart can't forget unsynced edits. This
+    // runs inside table hooks, so step outside whatever transaction is open.
+    if (first) {
+      void Dexie.ignoreTransaction(() => db.meta.put({ key: 'dirty', value: true })).catch(
+        () => {},
+      );
+    }
+  },
+
+  dismissSyncNotice() {
+    set({ syncReplacedEdits: false });
   },
 
   async refreshSyncEmail() {
@@ -229,28 +263,41 @@ export const useAppStore = create<AppState>()((set) => ({
       const { getDeviceId } = await import('../sync/deviceId');
       const kdf = (await db.meta.get('kdfParams'))?.value as KdfParams;
 
+      const dirty = useAppStore.getState().dataEpoch !== useAppStore.getState().lastSyncedEpoch;
+      let safetyJson: string | null = null;
       const result = await syncNow({
         gateway: supabaseGateway(),
         sessionKey: state.sessionKey,
         kdf,
         deviceId: getDeviceId(),
         localVersion: useAppStore.getState().syncVersion,
-        dirty: useAppStore.getState().dataEpoch !== useAppStore.getState().lastSyncedEpoch,
+        dirty,
         exportBackup,
         importBackup,
-        saveSafetyBackup: async (json) => {
-          await db.meta.put({ key: 'sync-safety', value: { json, at: Date.now() } });
+        // Held in memory: the pull's import replaces the whole meta table, so
+        // the snapshot is written after it (below), not before.
+        saveSafetyBackup: (json) => {
+          safetyJson = json;
         },
         onVersion: async (version) => {
           await db.meta.put({ key: 'sync', value: { version } });
-          set({ syncVersion: version, lastSyncedEpoch: useAppStore.getState().dataEpoch });
+          await db.meta.delete('dirty');
+          set({
+            syncVersion: version,
+            lastSyncedEpoch: useAppStore.getState().dataEpoch,
+            dirtyMarked: false,
+          });
         },
       });
 
       // A pull replaced local data — reload decrypted caches + settings.
       if (result.action === 'pull') {
+        if (safetyJson !== null) {
+          await db.meta.put({ key: 'sync-safety', value: { json: safetyJson, at: Date.now() } });
+        }
         const settingsRow = await db.meta.get('settings');
         set({
+          syncReplacedEdits: dirty,
           accounts: null,
           categories: null,
           settings: (settingsRow?.value as Settings) ?? DEFAULT_SETTINGS,
