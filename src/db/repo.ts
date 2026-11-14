@@ -514,12 +514,15 @@ export async function exportBackup(): Promise<string> {
       db.importPresets.toArray(),
       db.meta.toArray(),
     ]);
+  // Device-local bookkeeping stays out: the snapshot would otherwise nest a
+  // full copy of the previous vault inside every backup and synced blob.
+  const portableMeta = meta.filter((row) => row.key !== 'sync-safety' && row.key !== 'dirty');
   return JSON.stringify({
     format: BACKUP_FORMAT,
     schemaVersion: db.verno, // Dexie's live schema version, not the stale meta row
 
     exportedAt: new Date().toISOString(),
-    meta,
+    meta: portableMeta,
     tables: { accounts, categories, transactions, recurringRules, importPresets },
   });
 }

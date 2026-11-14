@@ -15,7 +15,7 @@ describe('bottom navigation', () => {
       'Home',
       'Transactions',
       'Accounts',
-      'Budgets',
+      'Categories',
       'More',
     ]);
   });
