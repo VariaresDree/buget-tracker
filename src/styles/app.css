@@ -50,14 +50,15 @@
   --surface: #ffffff;
   --surface-2: #f1f3f9;
   --border: #e4e8f0;
+  --border-strong: #838b9c; /* control outlines: 3:1 on surface and bg */
   --text: #131722;
-  --text-dim: #667085;
+  --text-dim: #606b80;
   --accent: #5b5bd6;
   --accent-soft: #ececfb;
   --on-accent: #ffffff;
-  --income: #15803d;
+  --income: #147a3a;
   --income-soft: #e8f6ed;
-  --danger: #dc2626;
+  --danger: #c81e1e;
   --danger-soft: #fdecec;
   --warning: #d97706;
   --shadow-1: 0 1px 2px rgba(19, 23, 34, 0.06), 0 1px 3px rgba(19, 23, 34, 0.04);
@@ -72,6 +73,7 @@
   --surface: #171a23;
   --surface-2: #1f2330;
   --border: #2a2f3d;
+  --border-strong: #687085;
   --text: #e9ecf2;
   --text-dim: #9aa3b5;
   --accent: #8b8bf0;
@@ -94,6 +96,7 @@
     --surface: #171a23;
     --surface-2: #1f2330;
     --border: #2a2f3d;
+    --border-strong: #687085;
     --text: #e9ecf2;
     --text-dim: #9aa3b5;
     --accent: #8b8bf0;
@@ -177,7 +180,7 @@ textarea {
   min-height: var(--tap);
   padding: var(--sp-3);
   border-radius: var(--r-md);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--text);
   width: 100%;
@@ -359,6 +362,11 @@ button.danger {
   align-items: center;
   justify-content: center;
   z-index: 25;
+}
+
+/* The quick-add button would sit on top of a form's Save button. */
+.app-main:has(.panel-form) ~ .fab {
+  display: none;
 }
 
 /* ============================================================
@@ -679,6 +687,13 @@ button.danger {
   justify-content: space-between;
   align-items: baseline;
   gap: var(--sp-3);
+}
+
+.budget-row-top strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
 }
 
 .budget-track {

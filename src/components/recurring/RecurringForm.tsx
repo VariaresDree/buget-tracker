@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useBusy } from '../../hooks/useBusy';
 import type { Frequency } from '../../db/db';
 import { addRecurringRule, type Account } from '../../db/repo';
 import { useCategories } from '../../hooks/useCategories';
@@ -22,11 +23,16 @@ export default function RecurringForm({ accounts, onDone }: Props) {
   const [startDate, setStartDate] = useState(todayISO());
   const [endDate, setEndDate] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [busy, run] = useBusy();
 
   const categoryOptions = categories.filter((c) => c.type === kind && !c.archived);
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
+    void run(save);
+  }
+
+  async function save() {
     const parsed = parseAmountInput(amountInput);
     if (parsed === null || parsed <= 0) {
       setError('Enter an amount greater than zero.');
@@ -101,7 +107,9 @@ export default function RecurringForm({ accounts, onDone }: Props) {
       {error && <p className="form-error">{error}</p>}
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onDone}>Cancel</button>
-        <button type="submit">Save</button>
+        <button type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
       </div>
     </form>
   );

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useBusy } from '../../hooks/useBusy';
 import type { CategoryType } from '../../db/db';
 import { addCategory, updateCategory, type Category } from '../../db/repo';
 import { refreshCategories } from '../../hooks/useCategories';
@@ -20,9 +21,14 @@ export default function CategoryForm({ category, onDone }: Props) {
   );
   const [color, setColor] = useState(category?.color ?? DEFAULT_COLOR);
   const [error, setError] = useState<string | null>(null);
+  const [busy, run] = useBusy();
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
+    void run(save);
+  }
+
+  async function save() {
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError('Name is required.');
@@ -111,7 +117,9 @@ export default function CategoryForm({ category, onDone }: Props) {
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit">Save</button>
+        <button type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
       </div>
     </form>
   );
