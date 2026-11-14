@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { signIn, signOut, signUp } from '../../sync/auth';
 import { isSyncConfigured } from '../../sync/client';
 import { useAppStore } from '../../store/useAppStore';
+import PassphraseInput from '../common/PassphraseInput';
 
 export default function SyncSection() {
   const syncEmail = useAppStore((s) => s.syncEmail);
@@ -90,9 +91,9 @@ export default function SyncSection() {
           <input id="sync-email" type="email" autoComplete="email"
             value={email} onChange={(e) => setEmail(e.target.value)} />
           <label htmlFor="sync-password">Account password</label>
-          <input id="sync-password" type="password" autoComplete="current-password"
+          <PassphraseInput id="sync-password" what="password" autoComplete="current-password"
             value={password} onChange={(e) => setPassword(e.target.value)} />
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
           {notice && <p className="muted">{notice}</p>}
           <div className="backup-actions">
             <button type="submit" disabled={busy}>Sign in</button>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import PassphraseInput from '../common/PassphraseInput';
 
 /** New-device onboarding: sign in and decrypt the synced vault with the passphrase. */
 export default function RestoreFromSyncForm({ onCancel }: { onCancel: () => void }) {
@@ -40,12 +41,12 @@ export default function RestoreFromSyncForm({ onCancel }: { onCancel: () => void
         <input id="restore-email" type="email" autoComplete="email"
           value={email} onChange={(e) => setEmail(e.target.value)} />
         <label htmlFor="restore-password">Account password</label>
-        <input id="restore-password" type="password" autoComplete="current-password"
+        <PassphraseInput id="restore-password" what="password" autoComplete="current-password"
           value={password} onChange={(e) => setPassword(e.target.value)} />
         <label htmlFor="restore-passphrase">Vault passphrase</label>
-        <input id="restore-passphrase" type="password" autoComplete="off"
+        <PassphraseInput id="restore-passphrase" autoComplete="off"
           value={passphrase} onChange={(e) => setPassphrase(e.target.value)} />
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
         <button type="submit" disabled={busy}>
           {busy ? 'Restoring…' : 'Restore'}
         </button>

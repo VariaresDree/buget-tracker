@@ -8,7 +8,7 @@ import {
 } from '../../db/repo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { formatMoney } from '../../lib/money';
-import { useAppStore } from '../../store/useAppStore';
+import { showToast, useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import RecurringForm from './RecurringForm';
 import { useBackClose } from '../../hooks/useBackClose';
@@ -34,6 +34,7 @@ export default function RecurringScreen() {
     if (!window.confirm(`Delete the recurring "${rule.note || 'transaction'}"?`)) return;
     await deleteRecurringRule(rule.id);
     await reload();
+    showToast('Recurring transaction deleted');
   }
 
   function cadence(rule: RecurringRule) {

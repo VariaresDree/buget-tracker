@@ -4,6 +4,8 @@ import { addTransfer, type Account } from '../../db/repo';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
 import FormHeader from '../common/FormHeader';
+import FieldError, { useFieldError } from '../common/FieldError';
+import { showToast } from '../../store/useAppStore';
 
 interface Props {
   accounts: Account[];
@@ -16,7 +18,7 @@ export default function TransferForm({ accounts, onDone }: Props) {
   const [amountInput, setAmountInput] = useState('');
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { error, fail, invalid } = useFieldError();
   const [busy, run] = useBusy();
 
   function onSubmit(e: FormEvent) {
@@ -27,14 +29,15 @@ export default function TransferForm({ accounts, onDone }: Props) {
   async function save() {
     const parsed = parseAmountInput(amountInput);
     if (parsed === null || parsed <= 0) {
-      setError('Enter an amount greater than zero.');
+      fail('transfer-amount', 'Enter an amount greater than zero.');
       return;
     }
     if (fromId === toId) {
-      setError('Choose two different accounts.');
+      fail('transfer-to', 'Choose two different accounts.');
       return;
     }
     await addTransfer({ fromAccountId: fromId, toAccountId: toId, amount: parsed, date, note });
+    showToast('Transfer saved');
     onDone();
   }
 
@@ -57,20 +60,22 @@ export default function TransferForm({ accounts, onDone }: Props) {
       </select>
       <label htmlFor="transfer-to">To</label>
       <select
-        id="transfer-to"
+        id="transfer-to" {...invalid('transfer-to')}
         value={toId}
         onChange={(e) => setToId(Number(e.target.value))}
       >
         {accountOptions}
       </select>
+      <FieldError error={error} field="transfer-to" />
       <label htmlFor="transfer-amount">Amount</label>
       <input
-        id="transfer-amount"
+        id="transfer-amount" {...invalid('transfer-amount')}
         inputMode="decimal"
         placeholder="0.00"
         value={amountInput}
         onChange={(e) => setAmountInput(e.target.value)}
       />
+      <FieldError error={error} field="transfer-amount" />
       <label htmlFor="transfer-date">Date</label>
       <input
         id="transfer-date"
@@ -84,12 +89,11 @@ export default function TransferForm({ accounts, onDone }: Props) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
-      {error && <p className="form-error">{error}</p>}
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>

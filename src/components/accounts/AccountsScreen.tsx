@@ -4,7 +4,7 @@ import { deleteAccount, listTransactions, type Account, type Transaction } from 
 import { refreshAccounts, useAccounts } from '../../hooks/useAccounts';
 import { computeBalances } from '../../lib/balances';
 import { formatMoney } from '../../lib/money';
-import { useAppStore } from '../../store/useAppStore';
+import { showToast, useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import { ACCOUNT_ICONS } from '../dashboard/AccountChips';
 import StarterPicker from '../onboarding/StarterPicker';
@@ -36,6 +36,7 @@ export default function AccountsScreen() {
     if (!window.confirm(`Delete ${account.name} and all its transactions?`)) return;
     await deleteAccount(account.id);
     await refreshAccounts();
+    showToast('Account deleted');
   }
 
   if (mode === 'add') {

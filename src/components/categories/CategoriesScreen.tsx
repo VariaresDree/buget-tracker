@@ -3,7 +3,7 @@ import { Pencil, PieChart, Trash2 } from 'lucide-react';
 import { deleteCategory, type Category } from '../../db/repo';
 import { refreshCategories, useCategories } from '../../hooks/useCategories';
 import { formatMoney } from '../../lib/money';
-import { useAppStore } from '../../store/useAppStore';
+import { showToast, useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import StarterPicker from '../onboarding/StarterPicker';
 import CategoryForm from './CategoryForm';
@@ -29,6 +29,7 @@ export default function CategoriesScreen() {
     }
     await deleteCategory(category.id);
     await refreshCategories();
+    showToast('Category deleted');
   }
 
   if (mode === 'add') {

@@ -15,8 +15,10 @@ import {
 } from '../../lib/backupFile';
 import { transactionsCsv } from '../../lib/exportCsv';
 import { storageStatus } from '../../lib/persistence';
-import { useAppStore, type Settings } from '../../store/useAppStore';
+import { showToast, useAppStore, type Settings } from '../../store/useAppStore';
 import SyncSection from './SyncSection';
+import FieldError, { useFieldError } from '../common/FieldError';
+import PassphraseInput from '../common/PassphraseInput';
 
 /** Read a File as text; prefers Blob.text, falls back to FileReader (jsdom). */
 function readText(file: File): Promise<string> {
@@ -45,7 +47,7 @@ export default function SettingsScreen() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [passError, setPassError] = useState<string | null>(null);
+  const { error: passError, fail: failPass, clear: clearPass, invalid } = useFieldError();
   const [passDone, setPassDone] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -74,6 +76,7 @@ export default function SettingsScreen() {
       transactionsCsv(transactions, accounts, categories),
       'text/csv',
     );
+    showToast('Transactions exported');
   }
 
   const lastBackupAt = useAppStore((s) => s.lastBackupAt);
@@ -99,14 +102,14 @@ export default function SettingsScreen() {
 
   async function onChangePassphrase(e: FormEvent) {
     e.preventDefault();
-    setPassError(null);
+    clearPass();
     setPassDone(false);
     if (next.length < 8) {
-      setPassError('New passphrase must be at least 8 characters.');
+      failPass('pp-new', 'New passphrase must be at least 8 characters.');
       return;
     }
     if (next !== confirm) {
-      setPassError('New passphrases do not match.');
+      failPass('pp-confirm', 'New passphrases do not match.');
       return;
     }
     setBusy(true);
@@ -118,7 +121,7 @@ export default function SettingsScreen() {
       setNext('');
       setConfirm('');
     } catch (err) {
-      setPassError(err instanceof Error ? err.message : 'Could not change passphrase.');
+      failPass('pp-current', err instanceof Error ? err.message : 'Could not change passphrase.');
     } finally {
       setBusy(false);
     }
@@ -199,15 +202,17 @@ export default function SettingsScreen() {
         ) : (
           <form className="panel-form" onSubmit={onChangePassphrase}>
             <label htmlFor="pp-current">Current passphrase</label>
-            <input id="pp-current" type="password" autoComplete="current-password"
+            <PassphraseInput id="pp-current" {...invalid('pp-current')} autoComplete="current-password"
               value={current} onChange={(e) => setCurrent(e.target.value)} />
+            <FieldError error={passError} field="pp-current" />
             <label htmlFor="pp-new">New passphrase</label>
-            <input id="pp-new" type="password" autoComplete="new-password"
+            <PassphraseInput id="pp-new" {...invalid('pp-new')} autoComplete="new-password"
               value={next} onChange={(e) => setNext(e.target.value)} />
+            <FieldError error={passError} field="pp-new" />
             <label htmlFor="pp-confirm">Confirm new passphrase</label>
-            <input id="pp-confirm" type="password" autoComplete="new-password"
+            <PassphraseInput id="pp-confirm" {...invalid('pp-confirm')} autoComplete="new-password"
               value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-            {passError && <p className="form-error">{passError}</p>}
+            <FieldError error={passError} field="pp-confirm" />
             <div className="form-actions">
               <button type="button" className="secondary" onClick={() => setShowPassphrase(false)}>
                 Cancel

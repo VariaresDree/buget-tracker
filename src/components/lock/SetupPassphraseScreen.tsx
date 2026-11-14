@@ -2,12 +2,14 @@ import { useState, type FormEvent } from 'react';
 import { isSyncConfigured } from '../../sync/client';
 import { useAppStore } from '../../store/useAppStore';
 import RestoreFromSyncForm from './RestoreFromSyncForm';
+import FieldError, { useFieldError } from '../common/FieldError';
+import PassphraseInput from '../common/PassphraseInput';
 
 export default function SetupPassphraseScreen() {
   const setupPassphrase = useAppStore((s) => s.setupPassphrase);
   const [passphrase, setPassphrase] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { error, fail, clear, invalid } = useFieldError();
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
@@ -16,14 +18,14 @@ export default function SetupPassphraseScreen() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (passphrase.length < 8) {
-      setError('Passphrase must be at least 8 characters.');
+      fail('setup-passphrase', 'Passphrase must be at least 8 characters.');
       return;
     }
     if (passphrase !== confirm) {
-      setError('Passphrases do not match.');
+      fail('setup-confirm', 'Passphrases do not match.');
       return;
     }
-    setError(null);
+    clear();
     setBusy(true);
     try {
       await setupPassphrase(passphrase);
@@ -41,22 +43,21 @@ export default function SetupPassphraseScreen() {
       </p>
       <form onSubmit={onSubmit}>
         <label htmlFor="setup-passphrase">Passphrase</label>
-        <input
-          id="setup-passphrase"
-          type="password"
+        <PassphraseInput
+          id="setup-passphrase" {...invalid('setup-passphrase')}
           autoComplete="new-password"
           value={passphrase}
           onChange={(e) => setPassphrase(e.target.value)}
         />
+        <FieldError error={error} field="setup-passphrase" />
         <label htmlFor="setup-confirm">Confirm passphrase</label>
-        <input
-          id="setup-confirm"
-          type="password"
+        <PassphraseInput
+          id="setup-confirm" {...invalid('setup-confirm')}
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
-        {error && <p className="form-error">{error}</p>}
+        <FieldError error={error} field="setup-confirm" />
         <button type="submit" disabled={busy}>
           {busy ? 'Creating…' : 'Create passphrase'}
         </button>

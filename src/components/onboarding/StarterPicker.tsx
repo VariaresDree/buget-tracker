@@ -9,6 +9,7 @@ import {
 import { ACCOUNT_ICONS } from '../dashboard/AccountChips';
 import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes';
 import FormHeader from '../common/FormHeader';
+import { showToast } from '../../store/useAppStore';
 
 interface Props {
   kind: 'accounts' | 'categories';
@@ -56,6 +57,7 @@ export default function StarterPicker({ kind, onDone, onBack }: Props) {
       } else {
         await seedCategories(STARTER_CATEGORIES.filter((_, i) => selected.has(i)));
       }
+      showToast(`Added ${selected.size} ${kind}`);
       onDone();
     } finally {
       setBusy(false);
@@ -104,7 +106,7 @@ export default function StarterPicker({ kind, onDone, onBack }: Props) {
         <button type="button" className="secondary" onClick={onDone}>
           Skip
         </button>
-        <button type="submit" disabled={busy || selected.size === 0}>
+        <button type="submit" className="btn-primary" disabled={busy || selected.size === 0}>
           {busy ? 'Adding…' : `Add selected (${selected.size})`}
         </button>
       </div>

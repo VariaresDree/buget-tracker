@@ -345,6 +345,28 @@ button.danger {
   background: var(--surface-2);
 }
 
+/* Confirmation toast: above the tab bar, clear of the quick-add button. */
+.toast-region {
+  position: fixed;
+  left: var(--sp-4);
+  right: calc(56px + var(--sp-4) * 2);
+  bottom: calc(56px + var(--sp-4) + env(safe-area-inset-bottom));
+  z-index: 40;
+  pointer-events: none;
+}
+
+.toast {
+  display: inline-block;
+  max-width: 420px;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--fs-label);
+  font-weight: 500;
+  box-shadow: var(--shadow-3);
+}
+
 /* Floating quick-add */
 .fab {
   position: fixed;
@@ -761,6 +783,24 @@ button.danger {
   color: var(--danger);
   font-size: var(--fs-label);
   margin: 0;
+}
+
+.passphrase-field {
+  position: relative;
+}
+
+.passphrase-field input {
+  padding-right: calc(var(--tap) + var(--sp-1));
+}
+
+.passphrase-field .icon-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 
 .kind-toggle {

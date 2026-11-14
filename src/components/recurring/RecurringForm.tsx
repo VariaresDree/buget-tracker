@@ -6,6 +6,8 @@ import { useCategories } from '../../hooks/useCategories';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
 import FormHeader from '../common/FormHeader';
+import FieldError, { useFieldError } from '../common/FieldError';
+import { showToast } from '../../store/useAppStore';
 
 interface Props {
   accounts: Account[];
@@ -23,7 +25,7 @@ export default function RecurringForm({ accounts, onDone }: Props) {
   const [interval, setIntervalValue] = useState('1');
   const [startDate, setStartDate] = useState(todayISO());
   const [endDate, setEndDate] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const { error, fail, invalid } = useFieldError();
   const [busy, run] = useBusy();
 
   const categoryOptions = categories.filter((c) => c.type === kind && !c.archived);
@@ -36,7 +38,7 @@ export default function RecurringForm({ accounts, onDone }: Props) {
   async function save() {
     const parsed = parseAmountInput(amountInput);
     if (parsed === null || parsed <= 0) {
-      setError('Enter an amount greater than zero.');
+      fail('r-amount', 'Enter an amount greater than zero.');
       return;
     }
     const everyN = Math.max(1, Number(interval) || 1);
@@ -51,6 +53,7 @@ export default function RecurringForm({ accounts, onDone }: Props) {
       nextRunDate: startDate,
       endDate: endDate === '' ? null : endDate,
     });
+    showToast('Recurring transaction saved');
     onDone();
   }
 
@@ -69,7 +72,8 @@ export default function RecurringForm({ accounts, onDone }: Props) {
       </fieldset>
 
       <label htmlFor="r-amount">Amount</label>
-      <input id="r-amount" inputMode="decimal" placeholder="0.00" value={amountInput} onChange={(e) => setAmountInput(e.target.value)} />
+      <input id="r-amount" {...invalid('r-amount')} inputMode="decimal" placeholder="0.00" value={amountInput} onChange={(e) => setAmountInput(e.target.value)} />
+      <FieldError error={error} field="r-amount" />
 
       <label htmlFor="r-account">Account</label>
       <select id="r-account" value={accountId} onChange={(e) => setAccountId(Number(e.target.value))}>
@@ -105,10 +109,9 @@ export default function RecurringForm({ accounts, onDone }: Props) {
       <label htmlFor="r-end">End date (optional)</label>
       <input id="r-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
 
-      {error && <p className="form-error">{error}</p>}
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onDone}>Cancel</button>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>

@@ -66,6 +66,8 @@ interface AppState {
   /** A sync just replaced edits on this device that had not synced yet. */
   syncReplacedEdits: boolean;
   dismissSyncNotice: () => void;
+  /** Brief confirmation shown by <Toast>; null = nothing showing. */
+  toast: string | null;
   init: () => Promise<void>;
   setupPassphrase: (passphrase: string) => Promise<void>;
   unlock: (passphrase: string) => Promise<boolean>;
@@ -103,6 +105,7 @@ export const useAppStore = create<AppState>()((set) => ({
   lastSyncedEpoch: 0,
   dirtyMarked: false,
   syncReplacedEdits: false,
+  toast: null,
 
   async init() {
     const [kdf, settingsRow, backupRow] = await Promise.all([
@@ -189,6 +192,7 @@ export const useAppStore = create<AppState>()((set) => ({
       accounts: null,
       categories: null,
       syncReplacedEdits: false,
+      toast: null,
     });
   },
 
@@ -338,6 +342,11 @@ export const useAppStore = create<AppState>()((set) => ({
     await useAppStore.getState().unlock(passphrase);
   },
 }));
+
+/** Confirm a completed action (saved, deleted, exported) without interrupting. */
+export function showToast(message: string): void {
+  useAppStore.setState({ toast: message });
+}
 
 // Data-layer accessor (repo.ts in Phase 2): encrypt/decrypt without components
 // ever touching the key. Throws instead of silently working on a locked vault.
