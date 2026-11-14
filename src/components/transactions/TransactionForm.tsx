@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useBusy } from '../../hooks/useBusy';
 import {
   addTransaction,
   updateTransaction,
@@ -28,6 +29,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
   const [date, setDate] = useState(tx?.date ?? todayISO());
   const [note, setNote] = useState(tx?.note ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [busy, run] = useBusy();
 
   const categoryOptions = categories.filter((c) => c.type === kind && !c.archived);
 
@@ -42,8 +44,12 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
     }
   }
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
+    void run(save);
+  }
+
+  async function save() {
     const parsed = parseAmountInput(amountInput);
     if (parsed === null || parsed <= 0) {
       setError('Enter an amount greater than zero.');
@@ -135,7 +141,9 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit">Save</button>
+        <button type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
       </div>
     </form>
   );

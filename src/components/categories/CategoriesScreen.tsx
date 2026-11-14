@@ -12,6 +12,8 @@ type Mode = 'list' | 'add' | 'starter' | { editId: number };
 
 export default function CategoriesScreen() {
   const categories = useCategories();
+  // [] while still loading — don't flash the empty state before data arrives.
+  const loaded = useAppStore((s) => s.categories !== null);
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const [mode, setMode] = useState<Mode>('list');
 
@@ -52,7 +54,7 @@ export default function CategoriesScreen() {
           </button>
         )}
       </div>
-      {categories.length === 0 ? (
+      {!loaded ? null : categories.length === 0 ? (
         <EmptyState
           icon={PieChart}
           title="No categories yet"

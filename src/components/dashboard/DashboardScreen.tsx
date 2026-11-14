@@ -18,6 +18,7 @@ import SpendLine from './SpendLine';
 
 export default function DashboardScreen() {
   const categories = useCategories();
+  const categoriesLoaded = useAppStore((s) => s.categories !== null);
   const accounts = useAccounts();
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
@@ -101,7 +102,8 @@ export default function DashboardScreen() {
       <AccountChips accounts={accounts} balances={balances} symbol={symbol} />
 
       <h3 className="section-title">Budgets</h3>
-      {rows.length === 0 && uncategorized === 0 ? (
+      {!categoriesLoaded || transactions === null ? null : rows.length === 0 &&
+        uncategorized === 0 ? (
         <EmptyState
           icon={Target}
           title="No expense categories yet"

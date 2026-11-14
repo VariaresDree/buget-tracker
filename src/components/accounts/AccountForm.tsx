@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useBusy } from '../../hooks/useBusy';
 import type { AccountType } from '../../db/db';
 import { addAccount, updateAccount, type Account } from '../../db/repo';
 import { refreshAccounts } from '../../hooks/useAccounts';
@@ -17,9 +18,14 @@ export default function AccountForm({ account, onDone }: Props) {
     account ? (account.startingBalance / 100).toFixed(2) : '',
   );
   const [error, setError] = useState<string | null>(null);
+  const [busy, run] = useBusy();
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
+    void run(save);
+  }
+
+  async function save() {
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError('Name is required.');
@@ -74,7 +80,9 @@ export default function AccountForm({ account, onDone }: Props) {
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit">Save</button>
+        <button type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
       </div>
     </form>
   );

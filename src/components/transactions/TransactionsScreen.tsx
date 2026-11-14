@@ -142,7 +142,7 @@ export default function TransactionsScreen() {
         </select>
       </div>
 
-      {visible.length === 0 ? (
+      {transactions === null ? null : visible.length === 0 ? (
         <EmptyState
           icon={Receipt}
           title="No transactions yet"

@@ -15,6 +15,8 @@ type Mode = 'list' | 'add' | 'starter' | { editId: number };
 
 export default function AccountsScreen() {
   const accounts = useAccounts();
+  // [] while still loading — don't flash the empty state before data arrives.
+  const loaded = useAppStore((s) => s.accounts !== null);
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const [mode, setMode] = useState<Mode>('list');
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
@@ -60,7 +62,7 @@ export default function AccountsScreen() {
           </button>
         )}
       </div>
-      {accounts.length === 0 ? (
+      {!loaded ? null : accounts.length === 0 ? (
         <EmptyState
           icon={Wallet}
           title="No accounts yet"
