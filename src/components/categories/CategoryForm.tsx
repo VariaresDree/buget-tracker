@@ -5,6 +5,7 @@ import { addCategory, updateCategory, type Category } from '../../db/repo';
 import { refreshCategories } from '../../hooks/useCategories';
 import { parseAmountInput } from '../../lib/money';
 import { PRESET_COLORS } from './presetColors';
+import FormHeader from '../common/FormHeader';
 
 const DEFAULT_COLOR = PRESET_COLORS[0];
 
@@ -53,7 +54,7 @@ export default function CategoryForm({ category, onDone }: Props) {
 
   return (
     <form className="panel-form" onSubmit={onSubmit}>
-      <h2>{category ? 'Edit category' : 'Add category'}</h2>
+      <FormHeader title={category ? 'Edit category' : 'Add category'} onBack={onDone} />
       <label htmlFor="category-name">Name</label>
       <input
         id="category-name"

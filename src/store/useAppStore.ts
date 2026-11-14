@@ -201,6 +201,12 @@ export const useAppStore = create<AppState>()((set) => ({
   },
 
   setActiveTab(tab) {
+    if (tab === useAppStore.getState().activeTab) return;
+    // One history entry per screen so the phone's back button walks back
+    // through them. A tab tapped while a form is open replaces the form's entry.
+    const state = { tab };
+    if ((history.state as { overlay?: boolean } | null)?.overlay) history.replaceState(state, '');
+    else history.pushState(state, '');
     set({ activeTab: tab });
   },
 

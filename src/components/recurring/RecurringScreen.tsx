@@ -11,6 +11,7 @@ import { formatMoney } from '../../lib/money';
 import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import RecurringForm from './RecurringForm';
+import { useBackClose } from '../../hooks/useBackClose';
 
 const FREQ_LABEL = { daily: 'day', weekly: 'week', monthly: 'month' } as const;
 
@@ -19,6 +20,7 @@ export default function RecurringScreen() {
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const [rules, setRules] = useState<RecurringRule[] | null>(null);
   const [adding, setAdding] = useState(false);
+  useBackClose(adding, () => setAdding(false));
 
   const reload = useCallback(async () => setRules(await listRecurringRules()), []);
   useEffect(() => { void reload(); }, [reload]);

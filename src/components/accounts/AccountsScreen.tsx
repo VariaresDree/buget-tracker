@@ -10,6 +10,7 @@ import { ACCOUNT_ICONS } from '../dashboard/AccountChips';
 import StarterPicker from '../onboarding/StarterPicker';
 import AccountForm from './AccountForm';
 import { ACCOUNT_TYPE_LABELS } from './accountTypes';
+import { useBackClose } from '../../hooks/useBackClose';
 
 type Mode = 'list' | 'add' | 'starter' | { editId: number };
 
@@ -19,6 +20,7 @@ export default function AccountsScreen() {
   const loaded = useAppStore((s) => s.accounts !== null);
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const [mode, setMode] = useState<Mode>('list');
+  useBackClose(mode !== 'list', () => setMode('list'));
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
 
   useEffect(() => {
@@ -40,7 +42,11 @@ export default function AccountsScreen() {
     return <AccountForm onDone={() => setMode('list')} />;
   }
   if (mode === 'starter') {
-    return <StarterPicker kind="accounts" onDone={() => setMode('list')} />;
+    return <StarterPicker
+        kind="accounts"
+        onDone={() => setMode('list')}
+        onBack={() => setMode('list')}
+      />;
   }
   if (typeof mode === 'object') {
     return (

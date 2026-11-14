@@ -7,6 +7,7 @@ import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import StarterPicker from '../onboarding/StarterPicker';
 import CategoryForm from './CategoryForm';
+import { useBackClose } from '../../hooks/useBackClose';
 
 type Mode = 'list' | 'add' | 'starter' | { editId: number };
 
@@ -16,6 +17,7 @@ export default function CategoriesScreen() {
   const loaded = useAppStore((s) => s.categories !== null);
   const symbol = useAppStore((s) => s.settings.currencySymbol);
   const [mode, setMode] = useState<Mode>('list');
+  useBackClose(mode !== 'list', () => setMode('list'));
 
   async function onDelete(category: Category) {
     if (
@@ -33,7 +35,11 @@ export default function CategoriesScreen() {
     return <CategoryForm onDone={() => setMode('list')} />;
   }
   if (mode === 'starter') {
-    return <StarterPicker kind="categories" onDone={() => setMode('list')} />;
+    return <StarterPicker
+        kind="categories"
+        onDone={() => setMode('list')}
+        onBack={() => setMode('list')}
+      />;
   }
   if (typeof mode === 'object') {
     return (
