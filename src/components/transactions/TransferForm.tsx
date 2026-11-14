@@ -3,6 +3,7 @@ import { useBusy } from '../../hooks/useBusy';
 import { addTransfer, type Account } from '../../db/repo';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
+import FormHeader from '../common/FormHeader';
 
 interface Props {
   accounts: Account[];
@@ -45,7 +46,7 @@ export default function TransferForm({ accounts, onDone }: Props) {
 
   return (
     <form className="panel-form" onSubmit={onSubmit}>
-      <h2>Transfer between accounts</h2>
+      <FormHeader title="Transfer between accounts" onBack={onDone} />
       <label htmlFor="transfer-from">From</label>
       <select
         id="transfer-from"

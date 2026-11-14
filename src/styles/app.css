@@ -388,6 +388,21 @@ button.danger {
   font-weight: 600;
 }
 
+.app-main:focus {
+  outline: none; /* focused programmatically on screen change, not a control */
+}
+
+.form-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-left: calc(var(--sp-2) * -1);
+}
+
+.form-head h2:first-child {
+  margin-left: var(--sp-2);
+}
+
 .screen-actions {
   display: flex;
   gap: var(--sp-2);

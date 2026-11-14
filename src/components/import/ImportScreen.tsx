@@ -5,6 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import ColumnMapper from './ColumnMapper';
 import ImportPreview from './ImportPreview';
 import { useImport } from './useImport';
+import { useBackClose } from '../../hooks/useBackClose';
 
 export default function ImportScreen() {
   const accounts = useAccounts();
@@ -15,6 +16,8 @@ export default function ImportScreen() {
   const [presets, setPresets] = useState<ImportPreset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [presetSaved, setPresetSaved] = useState(false);
+  // Back mid-import starts the import over rather than leaving the app.
+  useBackClose(imp.step === 'map' || imp.step === 'preview', imp.reset);
 
   useEffect(() => {
     void listImportPresets().then(setPresets);

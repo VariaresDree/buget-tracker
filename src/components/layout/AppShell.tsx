@@ -3,7 +3,7 @@ import { Lock } from 'lucide-react';
 import { useAutoLock } from '../../hooks/useAutoLock';
 import { useAutoSync } from '../../hooks/useAutoSync';
 import { useTheme } from '../../hooks/useTheme';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore, type TabId } from '../../store/useAppStore';
 import AccountsScreen from '../accounts/AccountsScreen';
 import CategoriesScreen from '../categories/CategoriesScreen';
 import Fab from '../common/Fab';
@@ -35,6 +35,23 @@ export default function AppShell() {
     if (lockStatus === 'loading') void init();
   }, [lockStatus, init]);
 
+  // Back/forward: show the screen recorded on the history entry we land on.
+  useEffect(() => {
+    // Align the current entry with the app (a reload restores stale state).
+    history.replaceState({ tab: useAppStore.getState().activeTab }, '');
+    const onPop = (e: PopStateEvent) => {
+      const tab = (e.state as { tab?: TabId } | null)?.tab ?? 'dashboard';
+      useAppStore.setState({ activeTab: tab });
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Screen readers and keyboards start from the new screen's content.
+  useEffect(() => {
+    document.getElementById('main')?.focus({ preventScroll: true });
+  }, [activeTab]);
+
   useAutoLock();
   useAutoSync();
   useTheme();
@@ -60,7 +77,7 @@ export default function AppShell() {
           <Lock size={20} aria-hidden="true" />
         </button>
       </header>
-      <main className="app-main" id="main">
+      <main className="app-main" id="main" tabIndex={-1}>
         <SyncNotice />
         {activeTab === 'dashboard' && <DashboardScreen />}
         {activeTab === 'transactions' && <TransactionsScreen />}

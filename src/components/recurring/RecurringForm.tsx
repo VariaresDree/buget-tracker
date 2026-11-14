@@ -5,6 +5,7 @@ import { addRecurringRule, type Account } from '../../db/repo';
 import { useCategories } from '../../hooks/useCategories';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
+import FormHeader from '../common/FormHeader';
 
 interface Props {
   accounts: Account[];
@@ -55,7 +56,7 @@ export default function RecurringForm({ accounts, onDone }: Props) {
 
   return (
     <form className="panel-form" onSubmit={onSubmit}>
-      <h2>Add recurring transaction</h2>
+      <FormHeader title="Add recurring transaction" onBack={onDone} />
       <fieldset className="kind-toggle">
         <label>
           <input type="radio" name="rkind" checked={kind === 'expense'} onChange={() => setKind('expense')} />

@@ -5,6 +5,7 @@ import { addAccount, updateAccount, type Account } from '../../db/repo';
 import { refreshAccounts } from '../../hooks/useAccounts';
 import { parseAmountInput } from '../../lib/money';
 import { ACCOUNT_TYPE_LABELS } from './accountTypes';
+import FormHeader from '../common/FormHeader';
 
 interface Props {
   account?: Account;
@@ -48,7 +49,7 @@ export default function AccountForm({ account, onDone }: Props) {
 
   return (
     <form className="panel-form" onSubmit={onSubmit}>
-      <h2>{account ? 'Edit account' : 'Add account'}</h2>
+      <FormHeader title={account ? 'Edit account' : 'Add account'} onBack={onDone} />
       <label htmlFor="account-name">Name</label>
       <input
         id="account-name"

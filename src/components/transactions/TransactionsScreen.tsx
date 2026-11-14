@@ -9,6 +9,7 @@ import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import TransactionForm from './TransactionForm';
 import TransferForm from './TransferForm';
+import { useBackClose } from '../../hooks/useBackClose';
 
 type Mode =
   | { kind: 'list' }
@@ -78,6 +79,7 @@ export default function TransactionsScreen() {
     setMode({ kind: 'list' });
     void reload();
   }
+  useBackClose(mode.kind !== 'list', closeForm);
 
   if (mode.kind === 'add') {
     return <TransactionForm accounts={accounts} onDone={closeForm} />;

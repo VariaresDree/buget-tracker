@@ -9,6 +9,7 @@ import {
 import { useCategories } from '../../hooks/useCategories';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
+import FormHeader from '../common/FormHeader';
 
 interface Props {
   accounts: Account[];
@@ -67,7 +68,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
 
   return (
     <form className="panel-form" onSubmit={onSubmit}>
-      <h2>{tx ? 'Edit transaction' : 'Add transaction'}</h2>
+      <FormHeader title={tx ? 'Edit transaction' : 'Add transaction'} onBack={onDone} />
       <fieldset className="kind-toggle">
         <label>
           <input

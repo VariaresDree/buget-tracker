@@ -8,14 +8,17 @@ import {
 } from '../../lib/presets';
 import { ACCOUNT_ICONS } from '../dashboard/AccountChips';
 import { ACCOUNT_TYPE_LABELS } from '../accounts/accountTypes';
+import FormHeader from '../common/FormHeader';
 
 interface Props {
   kind: 'accounts' | 'categories';
   onDone: () => void;
+  /** Shown as a back arrow when opened from a list screen (not in the wizard). */
+  onBack?: () => void;
 }
 
 /** Checklist of starter accounts or categories; seeds the chosen rows on submit. */
-export default function StarterPicker({ kind, onDone }: Props) {
+export default function StarterPicker({ kind, onDone, onBack }: Props) {
   const rows =
     kind === 'accounts'
       ? STARTER_ACCOUNTS.map((a) => ({
@@ -61,7 +64,10 @@ export default function StarterPicker({ kind, onDone }: Props) {
 
   return (
     <form className="panel-form" onSubmit={onSubmit}>
-      <h2>{kind === 'accounts' ? 'Starter accounts' : 'Starter categories'}</h2>
+      <FormHeader
+        title={kind === 'accounts' ? 'Starter accounts' : 'Starter categories'}
+        onBack={onBack}
+      />
       <p className="muted">
         {kind === 'accounts'
           ? 'Pick the accounts you use. Each starts at a zero balance — set the real amount anytime.'
