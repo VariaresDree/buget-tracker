@@ -18,6 +18,7 @@ import TransactionsScreen from '../transactions/TransactionsScreen';
 import MoreScreen from './MoreScreen';
 import SyncNotice from './SyncNotice';
 import TabBar from './TabBar';
+import Toast from './Toast';
 
 /** Quick-add is only offered where a transaction is the obvious next action. */
 const FAB_TABS = ['dashboard', 'transactions', 'accounts'];
@@ -91,6 +92,7 @@ export default function AppShell() {
       {FAB_TABS.includes(activeTab) && (
         <Fab label="Quick add transaction" onClick={onQuickAdd} />
       )}
+      <Toast />
       <TabBar />
     </>
   );

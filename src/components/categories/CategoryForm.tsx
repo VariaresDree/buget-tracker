@@ -6,6 +6,8 @@ import { refreshCategories } from '../../hooks/useCategories';
 import { parseAmountInput } from '../../lib/money';
 import { PRESET_COLORS } from './presetColors';
 import FormHeader from '../common/FormHeader';
+import FieldError, { useFieldError } from '../common/FieldError';
+import { showToast } from '../../store/useAppStore';
 
 const DEFAULT_COLOR = PRESET_COLORS[0];
 
@@ -21,7 +23,7 @@ export default function CategoryForm({ category, onDone }: Props) {
     category?.monthlyCap != null ? (category.monthlyCap / 100).toFixed(2) : '',
   );
   const [color, setColor] = useState(category?.color ?? DEFAULT_COLOR);
-  const [error, setError] = useState<string | null>(null);
+  const { error, fail, invalid } = useFieldError();
   const [busy, run] = useBusy();
 
   function onSubmit(e: FormEvent) {
@@ -32,14 +34,14 @@ export default function CategoryForm({ category, onDone }: Props) {
   async function save() {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Name is required.');
+      fail('category-name', 'Name is required.');
       return;
     }
     let monthlyCap: number | null = null;
     if (type === 'expense' && capInput.trim() !== '') {
       monthlyCap = parseAmountInput(capInput);
       if (monthlyCap === null || monthlyCap <= 0) {
-        setError('Enter a valid monthly cap, or leave it empty for no cap.');
+        fail('category-cap', 'Enter a valid monthly cap, or leave it empty for no cap.');
         return;
       }
     }
@@ -49,6 +51,7 @@ export default function CategoryForm({ category, onDone }: Props) {
       await addCategory({ name: trimmedName, type, monthlyCap, color });
     }
     await refreshCategories();
+    showToast(category ? 'Category updated' : 'Category saved');
     onDone();
   }
 
@@ -57,10 +60,11 @@ export default function CategoryForm({ category, onDone }: Props) {
       <FormHeader title={category ? 'Edit category' : 'Add category'} onBack={onDone} />
       <label htmlFor="category-name">Name</label>
       <input
-        id="category-name"
+        id="category-name" {...invalid('category-name')}
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+      <FieldError error={error} field="category-name" />
       <fieldset className="kind-toggle">
         <label>
           <input
@@ -85,12 +89,13 @@ export default function CategoryForm({ category, onDone }: Props) {
         <>
           <label htmlFor="category-cap">Monthly cap</label>
           <input
-            id="category-cap"
+            id="category-cap" {...invalid('category-cap')}
             inputMode="decimal"
             placeholder="No cap"
             value={capInput}
             onChange={(e) => setCapInput(e.target.value)}
           />
+          <FieldError error={error} field="category-cap" />
         </>
       )}
       <label htmlFor="category-color">Color</label>
@@ -113,12 +118,11 @@ export default function CategoryForm({ category, onDone }: Props) {
         value={color}
         onChange={(e) => setColor(e.target.value)}
       />
-      {error && <p className="form-error">{error}</p>}
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>

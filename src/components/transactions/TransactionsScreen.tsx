@@ -5,7 +5,7 @@ import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
 import { monthOf } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
-import { useAppStore } from '../../store/useAppStore';
+import { showToast, useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import TransactionForm from './TransactionForm';
 import TransferForm from './TransferForm';
@@ -73,6 +73,7 @@ export default function TransactionsScreen() {
     if (!window.confirm(message)) return;
     await deleteTransaction(tx.id);
     await reload();
+    showToast('Transaction deleted');
   }
 
   function closeForm() {

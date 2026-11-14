@@ -10,6 +10,8 @@ import { useCategories } from '../../hooks/useCategories';
 import { todayISO } from '../../lib/dates';
 import { parseAmountInput } from '../../lib/money';
 import FormHeader from '../common/FormHeader';
+import FieldError, { useFieldError } from '../common/FieldError';
+import { showToast } from '../../store/useAppStore';
 
 interface Props {
   accounts: Account[];
@@ -29,7 +31,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
   const [categoryId, setCategoryId] = useState<number | 'none'>(tx?.categoryId ?? 'none');
   const [date, setDate] = useState(tx?.date ?? todayISO());
   const [note, setNote] = useState(tx?.note ?? '');
-  const [error, setError] = useState<string | null>(null);
+  const { error, fail, invalid } = useFieldError();
   const [busy, run] = useBusy();
 
   const categoryOptions = categories.filter((c) => c.type === kind && !c.archived);
@@ -53,7 +55,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
   async function save() {
     const parsed = parseAmountInput(amountInput);
     if (parsed === null || parsed <= 0) {
-      setError('Enter an amount greater than zero.');
+      fail('tx-amount', 'Enter an amount greater than zero.');
       return;
     }
     const amount = kind === 'expense' ? -parsed : parsed;
@@ -63,6 +65,7 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
     } else {
       await addTransaction({ date, accountId, categoryId: finalCategoryId, amount, note });
     }
+    showToast(tx ? 'Transaction updated' : 'Transaction saved');
     onDone();
   }
 
@@ -91,12 +94,13 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
       </fieldset>
       <label htmlFor="tx-amount">Amount</label>
       <input
-        id="tx-amount"
+        id="tx-amount" {...invalid('tx-amount')}
         inputMode="decimal"
         placeholder="0.00"
         value={amountInput}
         onChange={(e) => setAmountInput(e.target.value)}
       />
+      <FieldError error={error} field="tx-amount" />
       <label htmlFor="tx-account">Account</label>
       <select
         id="tx-account"
@@ -137,12 +141,11 @@ export default function TransactionForm({ accounts, tx, onDone }: Props) {
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
-      {error && <p className="form-error">{error}</p>}
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>

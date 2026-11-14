@@ -3,7 +3,7 @@
 // "last backed up" nudge stays accurate.
 import { exportBackup, importBackup } from '../db/repo';
 import { db } from '../db/db';
-import { useAppStore } from '../store/useAppStore';
+import { showToast, useAppStore } from '../store/useAppStore';
 
 /** Hand the user a file to save; `name` gets today's date and the extension. */
 export function saveFile(name: string, ext: string, text: string, type: string): void {
@@ -21,6 +21,7 @@ export async function downloadBackup(): Promise<void> {
   const at = Date.now();
   await db.meta.put({ key: 'lastBackupAt', value: at });
   useAppStore.setState({ lastBackupAt: at });
+  showToast('Backup downloaded');
 }
 
 export interface SafetySnapshot {

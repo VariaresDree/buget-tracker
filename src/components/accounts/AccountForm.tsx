@@ -6,6 +6,8 @@ import { refreshAccounts } from '../../hooks/useAccounts';
 import { parseAmountInput } from '../../lib/money';
 import { ACCOUNT_TYPE_LABELS } from './accountTypes';
 import FormHeader from '../common/FormHeader';
+import FieldError, { useFieldError } from '../common/FieldError';
+import { showToast } from '../../store/useAppStore';
 
 interface Props {
   account?: Account;
@@ -18,7 +20,7 @@ export default function AccountForm({ account, onDone }: Props) {
   const [balanceInput, setBalanceInput] = useState(
     account ? (account.startingBalance / 100).toFixed(2) : '',
   );
-  const [error, setError] = useState<string | null>(null);
+  const { error, fail, invalid } = useFieldError();
   const [busy, run] = useBusy();
 
   function onSubmit(e: FormEvent) {
@@ -29,13 +31,13 @@ export default function AccountForm({ account, onDone }: Props) {
   async function save() {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Name is required.');
+      fail('account-name', 'Name is required.');
       return;
     }
     const startingBalance =
       balanceInput.trim() === '' ? 0 : parseAmountInput(balanceInput);
     if (startingBalance === null) {
-      setError('Enter a valid starting balance.');
+      fail('account-balance', 'Enter a valid starting balance.');
       return;
     }
     if (account) {
@@ -44,6 +46,7 @@ export default function AccountForm({ account, onDone }: Props) {
       await addAccount({ name: trimmedName, type, startingBalance });
     }
     await refreshAccounts();
+    showToast(account ? 'Account updated' : 'Account saved');
     onDone();
   }
 
@@ -52,10 +55,11 @@ export default function AccountForm({ account, onDone }: Props) {
       <FormHeader title={account ? 'Edit account' : 'Add account'} onBack={onDone} />
       <label htmlFor="account-name">Name</label>
       <input
-        id="account-name"
+        id="account-name" {...invalid('account-name')}
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+      <FieldError error={error} field="account-name" />
       <label htmlFor="account-type">Type</label>
       <select
         id="account-type"
@@ -70,18 +74,18 @@ export default function AccountForm({ account, onDone }: Props) {
       </select>
       <label htmlFor="account-balance">Starting balance</label>
       <input
-        id="account-balance"
+        id="account-balance" {...invalid('account-balance')}
         inputMode="decimal"
         placeholder="0.00"
         value={balanceInput}
         onChange={(e) => setBalanceInput(e.target.value)}
       />
-      {error && <p className="form-error">{error}</p>}
+      <FieldError error={error} field="account-balance" />
       <div className="form-actions">
         <button type="button" className="secondary" onClick={onDone}>
           Cancel
         </button>
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>
