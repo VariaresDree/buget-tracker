@@ -1,5 +1,6 @@
 // Default category colors — the dataviz reference palette's dark-mode
-// categorical slots, validated against this app's surface (#1a2030) with
+// categorical slots. Re-checked against the Calm ledger card surfaces (#1c1c19
+// dark, #fffefb light): every colour is at least 3:1 on both. Originally validated with
 // scripts/validate_palette.js: lightness band, chroma floor, ≥3:1 contrast all
 // PASS; adjacent-pair CVD sits in the floor band, mitigated app-wide by direct
 // labels (legend names, budget-bar titles) so identity never rests on color.

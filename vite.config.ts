@@ -14,8 +14,8 @@ export default defineConfig({
         short_name: 'Budget',
         description: 'Offline-first personal budget tracker',
         display: 'standalone',
-        background_color: '#10141c',
-        theme_color: '#10141c',
+        background_color: '#141412',
+        theme_color: '#1c1c19',
         icons: [
           {
             src: 'icons/icon.svg',
