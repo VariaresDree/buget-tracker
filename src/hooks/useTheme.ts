@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 
-// Matches the palette in app.css so the browser chrome tracks the app surface.
-const THEME_COLORS = { light: '#f4f6fb', dark: '#10141c' } as const;
+// Matches --surface in app.css (the header's colour) so the browser chrome blends into it.
+const THEME_COLORS = { light: '#fffefb', dark: '#1c1c19' } as const;
 
 function applyResolved(resolved: 'light' | 'dark', forced: boolean) {
   const root = document.documentElement;
