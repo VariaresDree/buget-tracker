@@ -150,11 +150,17 @@ export default function DashboardScreen() {
         </ul>
       )}
 
-      <h3 className="section-title">Spending by category</h3>
-      <CategoryPie slices={slices} symbol={symbol} />
-
-      <h3 className="section-title">Spend over time</h3>
-      <SpendLine series={series} symbol={symbol} />
+      {/* Side by side on wide screens, stacked on phones. */}
+      <div className="dashboard-charts">
+        <div>
+          <h3 className="section-title">Spending by category</h3>
+          <CategoryPie slices={slices} symbol={symbol} />
+        </div>
+        <div>
+          <h3 className="section-title">Spend over time</h3>
+          <SpendLine series={series} symbol={symbol} />
+        </div>
+      </div>
     </section>
   );
 }
