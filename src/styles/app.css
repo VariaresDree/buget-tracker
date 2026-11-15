@@ -1149,6 +1149,70 @@ input[type='color'] {
 }
 
 /* ============================================================
+   Wide screens: the tab bar becomes a side rail and the content
+   uses the extra width. Phones and tablets are unchanged.
+   ============================================================ */
+@media (min-width: 1024px) {
+  :root {
+    --rail: 96px;
+  }
+
+  /* Only when the app shell is showing (not on the lock screens). */
+  #root:has(.tab-bar) {
+    padding-left: var(--rail);
+  }
+
+  .tab-bar {
+    top: 0;
+    right: auto;
+    width: var(--rail);
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: var(--sp-4) var(--sp-2);
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+
+  .tab-bar button {
+    flex: 0 0 auto;
+    min-height: 64px;
+    border-radius: var(--r-md);
+  }
+
+  .tab-bar button.active {
+    background: var(--accent-soft);
+  }
+
+  .app-main {
+    max-width: 1040px;
+    padding: var(--sp-5) var(--sp-6) var(--sp-7);
+  }
+
+  /* No tab bar underneath any more. */
+  .fab {
+    right: var(--sp-6);
+    bottom: var(--sp-6);
+  }
+
+  .toast-region {
+    left: calc(var(--rail) + var(--sp-6));
+    bottom: var(--sp-6);
+  }
+
+  .dashboard-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-5);
+    align-items: start;
+  }
+
+  .budget-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ============================================================
    Starter setup (first-run wizard + starter pickers)
    ============================================================ */
 .onboarding {
