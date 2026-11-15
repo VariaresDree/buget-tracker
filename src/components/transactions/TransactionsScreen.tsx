@@ -3,7 +3,7 @@ import { ArrowLeftRight, Pencil, Receipt, Trash2 } from 'lucide-react';
 import { deleteTransaction, listTransactions, type Transaction } from '../../db/repo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
-import { monthOf } from '../../lib/dates';
+import { formatDay, formatMonth, monthOf } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
 import { showToast, useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
@@ -60,6 +60,17 @@ export default function TransactionsScreen() {
       ),
     [transactions, filterAccount, filterMonth],
   );
+
+  // `visible` is newest-first, so each day's rows are already together.
+  const days = useMemo(() => {
+    const groups: { date: string; rows: Transaction[] }[] = [];
+    for (const tx of visible) {
+      const last = groups[groups.length - 1];
+      if (last?.date === tx.date) last.rows.push(tx);
+      else groups.push({ date: tx.date, rows: [tx] });
+    }
+    return groups;
+  }, [visible]);
 
   const accountName = useCallback(
     (id: number) => accounts.find((a) => a.id === id)?.name ?? 'Unknown account',
@@ -139,7 +150,7 @@ export default function TransactionsScreen() {
           <option value="all">All months</option>
           {months.map((m) => (
             <option key={m} value={m}>
-              {m}
+              {formatMonth(m)}
             </option>
           ))}
         </select>
@@ -156,68 +167,69 @@ export default function TransactionsScreen() {
           }
         />
       ) : (
-        <ul className="card-list">
-          {visible.map((tx) => {
-            const category = categories.find((c) => c.id === tx.categoryId);
-            const isTransfer = Boolean(tx.transferGroupId);
-            return (
-              <li key={tx.id}>
-                <div className="row-lead">
-                  <span
-                    className="row-avatar"
-                    aria-hidden="true"
-                    style={
-                      category
-                        ? { background: `${category.color}22`, color: category.color }
-                        : undefined
-                    }
-                  >
-                    {isTransfer ? (
-                      <ArrowLeftRight size={20} strokeWidth={1.75} />
-                    ) : (
-                      <Receipt size={20} strokeWidth={1.75} />
-                    )}
-                  </span>
-                  <div className="row-main">
-                    <strong>
-                      {isTransfer
-                        ? tx.amount < 0
-                          ? 'Transfer out'
-                          : 'Transfer in'
-                        : (category?.name ?? accountName(tx.accountId))}
-                    </strong>
-                    <span className="muted">
-                      {tx.date}
-                      {tx.note && ` · `}
-                      {tx.note && <span>{tx.note}</span>}
-                    </span>
-                  </div>
-                </div>
-                <div className="row-side">
-                  <span className={tx.amount >= 0 ? 'amount income' : 'amount'}>
-                    {formatMoney(tx.amount, symbol)}
-                  </span>
-                  {!isTransfer && (
-                    <button
-                      className="icon-btn"
-                      aria-label="Edit"
-                      onClick={() => setMode({ kind: 'edit', tx })}
-                    >
-                      <Pencil size={18} aria-hidden="true" />
-                    </button>
-                  )}
-                  <button
-                    className="icon-btn danger"
-                    aria-label="Delete"
-                    onClick={() => void onDelete(tx)}
-                  >
-                    <Trash2 size={18} aria-hidden="true" />
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        days.map((day) => (
+          <section key={day.date}>
+            <h3 className="day-header">{formatDay(day.date)}</h3>
+            <ul className="card-list">
+              {day.rows.map((tx) => {
+                const category = categories.find((c) => c.id === tx.categoryId);
+                const isTransfer = Boolean(tx.transferGroupId);
+                return (
+                  <li key={tx.id}>
+                    <div className="row-lead">
+                      <span
+                        className="row-avatar"
+                        aria-hidden="true"
+                        style={
+                          category
+                            ? { background: `${category.color}22`, color: category.color }
+                            : undefined
+                        }
+                      >
+                        {isTransfer ? (
+                          <ArrowLeftRight size={20} strokeWidth={1.75} />
+                        ) : (
+                          <Receipt size={20} strokeWidth={1.75} />
+                        )}
+                      </span>
+                      <div className="row-main">
+                        <strong>
+                          {isTransfer
+                            ? tx.amount < 0
+                              ? 'Transfer out'
+                              : 'Transfer in'
+                            : (category?.name ?? accountName(tx.accountId))}
+                        </strong>
+                        {tx.note && <span className="muted">{tx.note}</span>}
+                      </div>
+                    </div>
+                    <div className="row-side">
+                      <span className={tx.amount >= 0 ? 'amount income' : 'amount'}>
+                        {formatMoney(tx.amount, symbol)}
+                      </span>
+                      {!isTransfer && (
+                        <button
+                          className="icon-btn"
+                          aria-label="Edit"
+                          onClick={() => setMode({ kind: 'edit', tx })}
+                        >
+                          <Pencil size={18} aria-hidden="true" />
+                        </button>
+                      )}
+                      <button
+                        className="icon-btn danger"
+                        aria-label="Delete"
+                        onClick={() => void onDelete(tx)}
+                      >
+                        <Trash2 size={18} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
       )}
     </section>
   );

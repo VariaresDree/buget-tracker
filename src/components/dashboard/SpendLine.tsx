@@ -25,6 +25,9 @@ export default function SpendLine({ series, symbol, width, height = 200 }: Props
     return <p className="placeholder">No spending this month.</p>;
   }
 
+  // The SVG is opaque to screen readers; say what it shows instead.
+  const summary = `Spending so far this month: ${formatMoney(series[series.length - 1].total, symbol)} in total`;
+
   const chart = (
     <LineChart width={width} height={height} data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
       <CartesianGrid stroke="var(--surface-2)" vertical={false} />
@@ -61,9 +64,15 @@ export default function SpendLine({ series, symbol, width, height = 200 }: Props
     </LineChart>
   );
 
-  if (width) return <div className="chart-box">{chart}</div>;
+  if (width) {
+    return (
+      <div className="chart-box" role="img" aria-label={summary}>
+        {chart}
+      </div>
+    );
+  }
   return (
-    <div className="chart-box">
+    <div className="chart-box" role="img" aria-label={summary}>
       <ResponsiveContainer width="100%" height={height}>
         {chart}
       </ResponsiveContainer>

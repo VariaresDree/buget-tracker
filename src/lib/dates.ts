@@ -23,3 +23,26 @@ export function addMonths(month: string, delta: number): string {
   const newMonth = (total % 12) + 1;
   return `${newYear}-${String(newMonth).padStart(2, '0')}`;
 }
+
+/** "November 2026" for a YYYY-MM month, in the device's language. */
+export function formatMonth(month: string): string {
+  return new Date(`${month}-01T00:00`).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/** "Today", "Yesterday", or "Fri, 14 Nov" (with the year when it isn't this one). */
+export function formatDay(dateISO: string, today: string = todayISO()): string {
+  if (dateISO === today) return 'Today';
+  const yesterday = new Date(`${today}T00:00`);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const date = new Date(`${dateISO}T00:00`);
+  if (date.getTime() === yesterday.getTime()) return 'Yesterday';
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    ...(dateISO.slice(0, 4) === today.slice(0, 4) ? {} : { year: 'numeric' }),
+  });
+}

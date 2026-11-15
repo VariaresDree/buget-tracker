@@ -6,7 +6,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { computeBalances } from '../../lib/balances';
 import { budgetRows, categorySpend, monthTotals } from '../../lib/budgets';
 import { cumulativeSpendSeries, pieData } from '../../lib/charts';
-import { addMonths, monthOf, todayISO } from '../../lib/dates';
+import { addMonths, formatMonth, monthOf, todayISO } from '../../lib/dates';
 import { useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import AccountChips from './AccountChips';
@@ -41,6 +41,8 @@ export default function DashboardScreen() {
     () => budgetRows(categories.filter((c) => !c.archived), spend),
     [categories, spend],
   );
+  // A category with no cap and no spending this month has nothing to report.
+  const shownRows = useMemo(() => rows.filter((r) => r.cap !== null || r.spent > 0), [rows]);
   const uncategorized = spend.get(null) ?? 0;
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -65,7 +67,7 @@ export default function DashboardScreen() {
   return (
     <section>
       <div className="screen-head">
-        <h2>Dashboard</h2>
+        <h2>Home</h2>
         <div className="month-nav">
           <button
             className="icon-btn"
@@ -74,12 +76,7 @@ export default function DashboardScreen() {
           >
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
-          <span className="month-label">
-            {new Date(`${month}-01T00:00`).toLocaleDateString(undefined, {
-              month: 'long',
-              year: 'numeric',
-            })}
-          </span>
+          <span className="month-label">{formatMonth(month)}</span>
           <button
             className="icon-btn"
             aria-label="Next month"
@@ -102,18 +99,28 @@ export default function DashboardScreen() {
       <AccountChips accounts={accounts} balances={balances} symbol={symbol} />
 
       <h3 className="section-title">Budgets</h3>
-      {!categoriesLoaded || transactions === null ? null : rows.length === 0 &&
+      {!categoriesLoaded || transactions === null ? null : shownRows.length === 0 &&
         uncategorized === 0 ? (
-        <EmptyState
-          icon={Target}
-          title="No expense categories yet"
-          hint="Add categories like Food or Transport to track spending against a monthly cap."
-          actionLabel="Add a category"
-          onAction={() => setActiveTab('categories')}
-        />
+        rows.length === 0 ? (
+          <EmptyState
+            icon={Target}
+            title="No expense categories yet"
+            hint="Add categories like Food or Transport to track spending against a monthly cap."
+            actionLabel="Add a category"
+            onAction={() => setActiveTab('categories')}
+          />
+        ) : (
+          <EmptyState
+            icon={Target}
+            title="No budgets set yet"
+            hint="Give a category a monthly cap to track your spending against it."
+            actionLabel="Set a budget"
+            onAction={() => setActiveTab('categories')}
+          />
+        )
       ) : (
         <ul className="card-list budget-list" aria-label="Budgets">
-          {rows.map((row) => {
+          {shownRows.map((row) => {
             const category = categoryById.get(row.categoryId);
             if (!category) return null;
             return (

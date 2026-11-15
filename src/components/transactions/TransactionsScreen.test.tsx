@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { addAccount, addCategory, addTransaction, listTransactions } from '../../db/repo';
+import { formatDay, todayISO } from '../../lib/dates';
 import { openTab, renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
@@ -164,5 +165,27 @@ describe('TransactionsScreen', () => {
 
     expect(await screen.findByText(/no transactions/i)).toBeInTheDocument();
     expect(await listTransactions()).toHaveLength(0);
+  });
+
+  test('groups transactions under a heading per day, newest first', async () => {
+    await unlockVault();
+    const acct = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    await addTransaction({ date: todayISO(), accountId: acct, amount: -100, note: 'coffee' });
+    await addTransaction({ date: todayISO(), accountId: acct, amount: -200, note: 'lunch' });
+    await addTransaction({ date: '2020-03-05', accountId: acct, amount: -300, note: 'old one' });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTab(user, 'Transactions');
+
+    const today = await screen.findByRole('heading', { name: 'Today' });
+    const older = screen.getByRole('heading', { name: formatDay('2020-03-05') });
+    expect(today.compareDocumentPosition(older) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const todaySection = today.closest('section')!;
+    expect(within(todaySection).getByText('coffee')).toBeInTheDocument();
+    expect(within(todaySection).getByText('lunch')).toBeInTheDocument();
+    expect(within(todaySection).queryByText('old one')).not.toBeInTheDocument();
+    // The raw ISO date is no longer shown.
+    expect(screen.queryByText(/2020-03-05/)).not.toBeInTheDocument();
   });
 });
