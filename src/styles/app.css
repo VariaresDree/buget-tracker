@@ -848,19 +848,23 @@ button.danger {
   flex-wrap: wrap;
 }
 
+/* Search across the top, then the two filters side by side. */
 .filters {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3) var(--sp-2);
   margin-bottom: var(--sp-4);
-  color: var(--text-dim);
-  font-size: var(--fs-label);
 }
 
-.filters select {
-  width: auto;
-  min-width: 140px;
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.filter-search {
+  grid-column: 1 / -1;
 }
 
 .color-dot {

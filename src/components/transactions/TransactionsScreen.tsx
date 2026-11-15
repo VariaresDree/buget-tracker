@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeftRight, Pencil, Receipt, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, Pencil, Receipt, SearchX, Trash2 } from 'lucide-react';
 import { deleteTransaction, listTransactions, type Transaction } from '../../db/repo';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
 import { formatDay, formatMonth, monthOf } from '../../lib/dates';
 import { formatMoney } from '../../lib/money';
+import { matchesQuery } from '../../lib/search';
 import { showToast, useAppStore } from '../../store/useAppStore';
 import EmptyState from '../common/EmptyState';
 import TransactionForm from './TransactionForm';
@@ -25,6 +26,7 @@ export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const [filterAccount, setFilterAccount] = useState<'all' | number>('all');
   const [filterMonth, setFilterMonth] = useState<'all' | string>('all');
+  const [query, setQuery] = useState('');
   const pendingQuickAdd = useAppStore((s) => s.pendingQuickAdd);
   const clearQuickAdd = useAppStore((s) => s.clearQuickAdd);
   // `accounts` is [] both while loading and when genuinely empty — the raw
@@ -51,15 +53,36 @@ export default function TransactionsScreen() {
     [transactions],
   );
 
+  const accountName = useCallback(
+    (id: number) => accounts.find((a) => a.id === id)?.name ?? 'Unknown account',
+    [accounts],
+  );
+
+  const categoryName = useCallback(
+    (tx: Transaction) =>
+      tx.transferGroupId
+        ? 'Transfer'
+        : (categories.find((c) => c.id === tx.categoryId)?.name ?? ''),
+    [categories],
+  );
+
   const visible = useMemo(
     () =>
       (transactions ?? []).filter(
         (t) =>
           (filterAccount === 'all' || t.accountId === filterAccount) &&
-          (filterMonth === 'all' || monthOf(t.date) === filterMonth),
+          (filterMonth === 'all' || monthOf(t.date) === filterMonth) &&
+          matchesQuery(t, query, accountName(t.accountId), categoryName(t)),
       ),
-    [transactions, filterAccount, filterMonth],
+    [transactions, filterAccount, filterMonth, query, accountName, categoryName],
   );
+
+  const filtering = query.trim() !== '' || filterAccount !== 'all' || filterMonth !== 'all';
+  function clearFilters() {
+    setQuery('');
+    setFilterAccount('all');
+    setFilterMonth('all');
+  }
 
   // `visible` is newest-first, so each day's rows are already together.
   const days = useMemo(() => {
@@ -71,11 +94,6 @@ export default function TransactionsScreen() {
     }
     return groups;
   }, [visible]);
-
-  const accountName = useCallback(
-    (id: number) => accounts.find((a) => a.id === id)?.name ?? 'Unknown account',
-    [accounts],
-  );
 
   async function onDelete(tx: Transaction) {
     const message = tx.transferGroupId
@@ -126,37 +144,51 @@ export default function TransactionsScreen() {
       </div>
 
       <div className="filters">
-        <label htmlFor="filter-account">Account</label>
-        <select
-          id="filter-account"
-          value={filterAccount === 'all' ? 'all' : String(filterAccount)}
-          onChange={(e) =>
-            setFilterAccount(e.target.value === 'all' ? 'all' : Number(e.target.value))
-          }
-        >
-          <option value="all">All accounts</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="filter-month">Month</label>
-        <select
-          id="filter-month"
-          value={filterMonth}
-          onChange={(e) => setFilterMonth(e.target.value)}
-        >
-          <option value="all">All months</option>
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {formatMonth(m)}
-            </option>
-          ))}
-        </select>
+        <div className="filter-field filter-search">
+          <label htmlFor="filter-search">Search</label>
+          <input
+            id="filter-search"
+            type="search"
+            placeholder="Note, category, account or amount"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="filter-field">
+          <label htmlFor="filter-account">Account</label>
+          <select
+            id="filter-account"
+            value={filterAccount === 'all' ? 'all' : String(filterAccount)}
+            onChange={(e) =>
+              setFilterAccount(e.target.value === 'all' ? 'all' : Number(e.target.value))
+            }
+          >
+            <option value="all">All accounts</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-field">
+          <label htmlFor="filter-month">Month</label>
+          <select
+            id="filter-month"
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value)}
+          >
+            <option value="all">All months</option>
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {formatMonth(m)}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {transactions === null ? null : visible.length === 0 ? (
+      {transactions === null ? null : transactions.length === 0 ? (
         <EmptyState
           icon={Receipt}
           title="No transactions yet"
@@ -165,6 +197,14 @@ export default function TransactionsScreen() {
               ? 'Add an account first, then log your spending and income here.'
               : 'Log your first expense or income to see it here.'
           }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={SearchX}
+          title="No matching transactions"
+          hint="Nothing fits the current search and filters."
+          actionLabel={filtering ? 'Clear filters' : undefined}
+          onAction={filtering ? clearFilters : undefined}
         />
       ) : (
         days.map((day) => (
