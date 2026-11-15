@@ -188,4 +188,36 @@ describe('TransactionsScreen', () => {
     // The raw ISO date is no longer shown.
     expect(screen.queryByText(/2020-03-05/)).not.toBeInTheDocument();
   });
+
+  test('search narrows the list and can be cleared from the no-match state', async () => {
+    await unlockVault();
+    const acct = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    const food = await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#f97316' });
+    await addTransaction({ date: todayISO(), accountId: acct, amount: -12550, note: 'lunch', categoryId: food });
+    await addTransaction({ date: todayISO(), accountId: acct, amount: -4500, note: 'jeepney' });
+    const user = userEvent.setup();
+    await renderApp();
+    await openTab(user, 'Transactions');
+    await screen.findByText('lunch');
+
+    const search = screen.getByRole('searchbox', { name: 'Search' });
+    await user.type(search, 'food');
+    expect(screen.getByText('lunch')).toBeInTheDocument();
+    expect(screen.queryByText('jeepney')).not.toBeInTheDocument();
+
+    await user.clear(search);
+    await user.type(search, '45.00');
+    expect(screen.getByText('jeepney')).toBeInTheDocument();
+    expect(screen.queryByText('lunch')).not.toBeInTheDocument();
+
+    await user.clear(search);
+    await user.type(search, 'nothing like this');
+    expect(screen.getByRole('heading', { name: 'No matching transactions' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'No transactions yet' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(search).toHaveValue('');
+    expect(screen.getByText('lunch')).toBeInTheDocument();
+    expect(screen.getByText('jeepney')).toBeInTheDocument();
+  });
 });

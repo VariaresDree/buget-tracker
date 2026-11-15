@@ -60,7 +60,8 @@ describe('SettingsScreen', () => {
     expect(await useAppStore.getState().unlock('correct horse battery')).toBe(false);
     expect(await useAppStore.getState().unlock('my new secret phrase')).toBe(true);
     expect((await listAccounts())[0]).toMatchObject({ name: 'Keeper', startingBalance: 12300 });
-  });
+    // Five 600k-iteration key derivations: ~3.5s idle, past the 5s default under load.
+  }, 15_000);
 
   test('rejects a wrong current passphrase', async () => {
     await unlockVault();
