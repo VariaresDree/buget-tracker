@@ -439,6 +439,14 @@ button.danger {
   font-weight: 600;
 }
 
+/* Date heading above each day's transactions */
+.day-header {
+  margin: var(--sp-4) 0 var(--sp-2);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
 .placeholder {
   color: var(--text-dim);
 }

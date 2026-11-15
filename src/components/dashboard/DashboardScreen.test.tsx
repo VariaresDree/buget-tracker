@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { addAccount, addCategory, addTransaction } from '../../db/repo';
-import { addMonths, monthOf, todayISO } from '../../lib/dates';
+import { addMonths, formatMonth, monthOf, todayISO } from '../../lib/dates';
 import { renderApp, resetApp, unlockVault } from '../../test/helpers';
 
 beforeEach(resetApp);
@@ -82,6 +82,29 @@ describe('DashboardScreen', () => {
     expect(await screen.findAllByText(/no spending this month/i)).toHaveLength(2);
   });
 
+  test('hides categories with no cap and no spending, and prompts to set a budget', async () => {
+    await unlockVault();
+    await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
+    await addCategory({ name: 'Food', type: 'expense', monthlyCap: null, color: '#f97316' });
+    await addCategory({ name: 'Transport', type: 'expense', monthlyCap: null, color: '#38bdf8' });
+    await renderApp();
+
+    expect(await screen.findByRole('heading', { name: 'No budgets set yet' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Budgets' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set a budget' })).toBeInTheDocument();
+  });
+
+  test('a capped category shows even with no spending', async () => {
+    await unlockVault();
+    await addCategory({ name: 'Food', type: 'expense', monthlyCap: 500000, color: '#f97316' });
+    await addCategory({ name: 'Idle', type: 'expense', monthlyCap: null, color: '#38bdf8' });
+    await renderApp();
+
+    const budgets = await screen.findByRole('list', { name: 'Budgets' });
+    expect(within(budgets).getByText('Food')).toBeInTheDocument();
+    expect(within(budgets).queryByText('Idle')).not.toBeInTheDocument();
+  });
+
   test('navigates to the previous month', async () => {
     await unlockVault();
     const acct = await addAccount({ name: 'Wallet', type: 'cash', startingBalance: 0 });
@@ -99,11 +122,7 @@ describe('DashboardScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Previous month' }));
 
     expect(await within(spentCard).findByText('₱1,200.00')).toBeInTheDocument();
-    const lastMonthLabel = new Date(`${lastMonth}-01T00:00`).toLocaleDateString(undefined, {
-      month: 'long',
-      year: 'numeric',
-    });
-    expect(screen.getByText(lastMonthLabel)).toBeInTheDocument();
+    expect(screen.getByText(formatMonth(lastMonth))).toBeInTheDocument();
     expect(screen.queryByText('₱300.00')).not.toBeInTheDocument();
   });
 });
